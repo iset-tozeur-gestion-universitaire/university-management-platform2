@@ -1,5 +1,5 @@
 // src/enseignant/enseignant.controller.ts
-import { Controller, Post, Get, Body, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
 import { EnseignantService } from './enseignant.service';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
 
