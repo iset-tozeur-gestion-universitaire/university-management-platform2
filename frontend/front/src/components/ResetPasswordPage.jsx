@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import authService from '../services/authService';
 import './LoginPage.css';
 
 function ResetPasswordPage() {
@@ -12,19 +12,28 @@ function ResetPasswordPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get email and token from URL query params
-    const emailParam = searchParams.get('email');
-    const tokenParam = searchParams.get('token');
-    
-    if (emailParam) setEmail(emailParam);
-    if (tokenParam) setToken(tokenParam);
-    
-    if (!emailParam || !tokenParam) {
-      setError('Lien invalide. Veuillez demander un nouveau lien de réinitialisation.');
-    }
+    const verifyParams = () => {
+      // Get email and token from URL parameters
+      const emailParam = searchParams.get('email');
+      const tokenParam = searchParams.get('token');
+      
+      if (emailParam && tokenParam) {
+        // Valid reset password link from our backend
+        setEmail(emailParam);
+        setToken(tokenParam);
+        setVerifying(false);
+      } else {
+        // Invalid link - missing params
+        setError('Lien invalide. Veuillez demander un nouveau lien de réinitialisation.');
+        setVerifying(false);
+      }
+    };
+
+    verifyParams();
   }, [searchParams]);
 
   const handleSubmit = async (e) => {
@@ -45,13 +54,10 @@ function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/reset-password', {
-        email,
-        token,
-        newPassword,
-      });
+      // Use our backend API to reset the password
+      await authService.resetPassword(email, token, newPassword);
 
-      setMessage(response.data.message || 'Mot de passe réinitialisé avec succès !');
+      setMessage('Mot de passe réinitialisé avec succès !');
       setLoading(false);
       
       // Show success message and redirect button
@@ -63,6 +69,7 @@ function ResetPasswordPage() {
       console.error('Reset password error:', err);
       setError(
         err.response?.data?.message || 
+        err.message || 
         'Une erreur est survenue. Le lien est peut-être expiré.'
       );
       setLoading(false);
@@ -73,11 +80,18 @@ function ResetPasswordPage() {
     <div className="login-container">
       <div className="login-box">
         <h1>Réinitialiser le mot de passe</h1>
-        <p style={{ marginBottom: '20px', color: '#666' }}>
-          Entrez votre nouveau mot de passe
-        </p>
+        
+        {verifying ? (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <p>Vérification du lien en cours...</p>
+          </div>
+        ) : (
+          <>
+            <p style={{ marginBottom: '20px', color: '#666' }}>
+              Entrez votre nouveau mot de passe
+            </p>
 
-        {message && (
+            {message && (
           <div style={{
             padding: '15px',
             marginBottom: '15px',
@@ -142,7 +156,7 @@ function ResetPasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Minimum 8 caractères"
               required
-              disabled={loading || !token}
+              disabled={loading}
               minLength={8}
             />
           </div>
@@ -155,7 +169,7 @@ function ResetPasswordPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirmez votre mot de passe"
               required
-              disabled={loading || !token}
+              disabled={loading}
               minLength={8}
             />
           </div>
@@ -163,7 +177,7 @@ function ResetPasswordPage() {
           <button 
             type="submit" 
             className="login-button"
-            disabled={loading || !token}
+            disabled={loading}
           >
             {loading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}
           </button>
@@ -185,6 +199,8 @@ function ResetPasswordPage() {
               Retour à la connexion
             </button>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>
