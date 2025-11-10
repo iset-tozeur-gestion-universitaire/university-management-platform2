@@ -52,14 +52,49 @@ export class EnseignantService {
     });
   }
 
-  findOne(id: number) {
-    return this.enseignantRepo.findOne({
+  async findOne(id: number) {
+    const enseignant = await this.enseignantRepo.findOne({
       where: { id },
       relations: ['departement', 'specialites', 'classes'],
     });
+    if (!enseignant) throw new NotFoundException('Enseignant non trouvé');
+    return enseignant;
   }
 
-  remove(id: number) {
-    return this.enseignantRepo.delete(id);
+  async update(id: number, dto: CreateEnseignantDto) {
+    const enseignant = await this.findOne(id);
+
+    if (dto.departementId) {
+      const departement = await this.depRepo.findOneBy({ id: dto.departementId });
+      if (!departement) throw new NotFoundException('Département introuvable');
+      enseignant.departement = departement;
+    }
+
+    if (dto.specialiteIds && dto.specialiteIds.length > 0) {
+      const specialites = await this.specRepo.find({
+        where: { id: In(dto.specialiteIds) },
+      });
+      enseignant.specialites = specialites;
+    }
+
+    if (dto.classeIds && dto.classeIds.length > 0) {
+      const classes = await this.classeRepo.find({
+        where: { id: In(dto.classeIds) },
+      });
+      enseignant.classes = classes;
+    }
+
+    enseignant.nom = dto.nom;
+    enseignant.prenom = dto.prenom;
+    enseignant.email = dto.email;
+    enseignant.grade = dto.grade;
+
+    return this.enseignantRepo.save(enseignant);
+  }
+
+  async remove(id: number) {
+    const enseignant = await this.findOne(id);
+    await this.enseignantRepo.remove(enseignant);
+    return { message: 'Enseignant supprimé avec succès' };
   }
 }
