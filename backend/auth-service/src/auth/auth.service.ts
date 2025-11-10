@@ -6,7 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Utilisateur } from 'src/utilisateur/utilisateur.entity/utilisateur.entity';
 import { randomBytes } from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer';
-// import { generateEmailVerificationLink, generatePasswordResetLink, ensureFirebaseUser, updateFirebasePassword } from 'src/firebase/firebase.service';
+import { generateEmailVerificationLink, generatePasswordResetLink, ensureFirebaseUser, updateFirebasePassword } from 'src/firebase/firebase.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -178,348 +178,65 @@ export class AuthService {
 
     console.log('✅ [ForgotPassword] User found:', user.email);
 
-    // Generate reset token
-    const token = randomBytes(32).toString('hex');
-    const expiresIn = new Date();
-    expiresIn.setHours(expiresIn.getHours() + 1); // Token expires in 1 hour
-
-    user.resetToken = token;
-    user.resetTokenExpires = expiresIn;
-    await this.usersRepo.save(user);
-
-    console.log('💾 [ForgotPassword] Token saved to database');
-
     try {
-      // Generate direct reset link to our frontend
-      const resetUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/reset-password?email=${encodeURIComponent(email)}&token=${token}`;
+      // Generate our own reset token (not Firebase)
+      const token = randomBytes(32).toString('hex');
+      const expiresIn = new Date();
+      expiresIn.setHours(expiresIn.getHours() + 1); // Token expires in 1 hour
+
+      user.resetToken = token;
+      user.resetTokenExpires = expiresIn;
+      await this.usersRepo.save(user);
+      console.log('💾 [ForgotPassword] Token saved to database');
+
+      // Create direct link to OUR reset password page with OUR token
+      const resetUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3003'}/reset-password?email=${encodeURIComponent(email)}&token=${token}`;
       console.log('🔗 [ForgotPassword] Reset URL:', resetUrl);
-
-      console.log('📧 [ForgotPassword] Attempting to send email...');
-      console.log('📧 [ForgotPassword] Mail config:', {
-        host: process.env.MAIL_HOST,
-        port: process.env.MAIL_PORT,
-        user: process.env.MAIL_USER,
-        to: email
-      });
-
-      // Read and encode logo image
-      let logoBase64 = '';
-      try {
-        // Try multiple possible paths
-        const possiblePaths = [
-          path.join(__dirname, '..', 'assets', 'isett.jpg'), // dist/auth/../assets
-          path.join(__dirname, '..', '..', 'src', 'assets', 'isett.jpg'), // dist/auth/../../src/assets
-          path.join(process.cwd(), 'src', 'assets', 'isett.jpg'), // from project root
-        ];
-        
-        let logoPath = '';
-        for (const testPath of possiblePaths) {
-          if (fs.existsSync(testPath)) {
-            logoPath = testPath;
-            break;
-          }
-        }
-        
-        console.log('📷 [ForgotPassword] Looking for logo...');
-        if (logoPath) {
-          console.log('📷 [ForgotPassword] Logo found at:', logoPath);
-          const logoBuffer = fs.readFileSync(logoPath);
-          logoBase64 = `data:image/jpeg;base64,${logoBuffer.toString('base64')}`;
-          console.log('📷 [ForgotPassword] Logo loaded successfully, size:', logoBuffer.length, 'bytes');
-        } else {
-          console.log('⚠️ [ForgotPassword] Logo not found. Tried paths:', possiblePaths);
-        }
-      } catch (error) {
-        console.error('❌ [ForgotPassword] Error loading logo:', error.message);
-      }
-
+      
+      // Send email with OUR link (not Firebase)
+      console.log('📧 [ForgotPassword] Sending email...');
+      
       await this.mailerService.sendMail({
         to: email,
         subject: '🔐 Réinitialisation de votre mot de passe - ISETT',
-        text: `Bonjour,\n\nVous avez demandé la réinitialisation de votre mot de passe pour votre compte ISETT.\n\nCliquez sur ce lien pour créer un nouveau mot de passe : ${resetUrl}\n\nCe lien est valable pendant 1 heure.\n\nSi vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet email.\n\nCordialement,\nL'équipe ISETT`,
         html: `
           <!DOCTYPE html>
           <html>
           <head>
             <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-              
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              
-              body {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-                background-color: #f4f7fc;
-                padding: 20px;
-              }
-              
-              .email-container {
-                max-width: 600px;
-                margin: 0 auto;
-                background-color: #ffffff;
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-              }
-              
-              .header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                padding: 40px 30px;
-                text-align: center;
-              }
-              
-              .logo-container {
-                width: 120px;
-                height: 120px;
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 20px;
-                padding: 10px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-              }
-              
-              .logo-container img {
-                max-width: 100%;
-                max-height: 100%;
-                border-radius: 50%;
-                object-fit: contain;
-              }
-              
-              .header-icon {
-                width: 80px;
-                height: 80px;
-                background-color: rgba(255, 255, 255, 0.2);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 20px;
-                font-size: 40px;
-              }
-              
-              .header h1 {
-                color: #ffffff;
-                font-size: 28px;
-                font-weight: 700;
-                margin: 0;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-              }
-              
-              .content {
-                padding: 40px 30px;
-              }
-              
-              .greeting {
-                font-size: 18px;
-                color: #2d3748;
-                margin-bottom: 20px;
-                font-weight: 600;
-              }
-              
-              .message {
-                font-size: 16px;
-                line-height: 1.6;
-                color: #4a5568;
-                margin-bottom: 30px;
-              }
-              
-              .button-container {
-                text-align: center;
-                margin: 40px 0;
-              }
-              
-              .reset-button {
-                display: inline-block;
-                padding: 16px 40px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: #ffffff !important;
-                text-decoration: none;
-                border-radius: 12px;
-                font-weight: 600;
-                font-size: 16px;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-                transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-              }
-              
-              .reset-button:before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -100%;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-                transition: left 0.5s;
-              }
-              
-              .reset-button:hover:before {
-                left: 100%;
-              }
-              
-              .reset-button:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
-              }
-              
-              .info-box {
-                background-color: #f7fafc;
-                border-left: 4px solid #667eea;
-                padding: 16px;
-                border-radius: 8px;
-                margin: 30px 0;
-              }
-              
-              .info-box p {
-                font-size: 14px;
-                color: #4a5568;
-                margin: 0;
-                line-height: 1.5;
-              }
-              
-              .link-box {
-                background-color: #f7fafc;
-                padding: 16px;
-                border-radius: 8px;
-                margin: 20px 0;
-                border: 1px dashed #cbd5e0;
-              }
-              
-              .link-box p {
-                font-size: 13px;
-                color: #718096;
-                margin-bottom: 8px;
-              }
-              
-              .link-text {
-                font-size: 12px;
-                color: #667eea;
-                word-break: break-all;
-                font-family: 'Courier New', monospace;
-              }
-              
-              .footer {
-                background-color: #f7fafc;
-                padding: 30px;
-                text-align: center;
-                border-top: 1px solid #e2e8f0;
-              }
-              
-              .footer p {
-                font-size: 14px;
-                color: #718096;
-                margin: 5px 0;
-              }
-              
-              .divider {
-                height: 1px;
-                background: linear-gradient(to right, transparent, #e2e8f0, transparent);
-                margin: 30px 0;
-              }
-              
-              .warning {
-                background-color: #fff5f5;
-                border-left: 4px solid #fc8181;
-                padding: 16px;
-                border-radius: 8px;
-                margin: 20px 0;
-              }
-              
-              .warning p {
-                font-size: 14px;
-                color: #c53030;
-                margin: 0;
-              }
-              
-              @media only screen and (max-width: 600px) {
-                .email-container {
-                  border-radius: 0;
-                }
-                
-                .header, .content, .footer {
-                  padding: 30px 20px;
-                }
-                
-                .reset-button {
-                  padding: 14px 30px;
-                  font-size: 15px;
-                }
-              }
+              body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
+              .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              .header { text-align: center; color: #667eea; margin-bottom: 30px; }
+              .button { display: inline-block; padding: 15px 30px; background-color: #667eea; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+              .footer { margin-top: 30px; text-align: center; color: #888; font-size: 12px; }
             </style>
           </head>
           <body>
-            <div class="email-container">
+            <div class="container">
               <div class="header">
-                ${logoBase64 ? `
-                <div class="logo-container">
-                  <img src="${logoBase64}" alt="Logo ISETT" />
-                </div>
-                ` : `
-                <div class="header-icon">🔐</div>
-                `}
-                <h1>Réinitialisation de mot de passe</h1>
+                <h1>🔐 Réinitialisation de mot de passe</h1>
               </div>
-              
-              <div class="content">
-                <p class="greeting">Bonjour,</p>
-                
-                <p class="message">
-                  Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte sur la plateforme de gestion universitaire <strong>ISETT</strong>.
-                </p>
-                
-                <p class="message">
-                  Pour créer un nouveau mot de passe sécurisé, cliquez sur le bouton ci-dessous :
-                </p>
-                
-                <div class="button-container">
-                  <a href="${resetUrl}" class="reset-button">
-                    🔓 Réinitialiser mon mot de passe
-                  </a>
-                </div>
-                
-                <div class="info-box">
-                  <p>
-                    <strong>⏱️ Validité du lien :</strong> Ce lien est valable pendant <strong>1 heure</strong> à compter de maintenant.
-                  </p>
-                </div>
-                
-                <div class="divider"></div>
-                
-                <div class="link-box">
-                  <p><strong>Le bouton ne fonctionne pas ?</strong> Copiez et collez ce lien dans votre navigateur :</p>
-                  <div class="link-text">${resetUrl}</div>
-                </div>
-                
-                <div class="warning">
-                  <p>
-                    ⚠️ <strong>Vous n'avez pas demandé cette réinitialisation ?</strong><br>
-                    Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email. Votre mot de passe actuel reste inchangé et sécurisé.
-                  </p>
-                </div>
+              <p>Bonjour <strong>${user.prenom || user.nom}</strong>,</p>
+              <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte ISETT.</p>
+              <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
+              <div style="text-align: center;">
+                <a href="${resetUrl}" class="button">Réinitialiser mon mot de passe</a>
               </div>
-              
+              <p><strong>⏱️ Ce lien est valable pendant 1 heure.</strong></p>
+              <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
+              <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
+              <p style="color: #e53e3e; margin-top: 20px;">⚠️ <strong>Vous n'avez pas demandé cette réinitialisation ?</strong><br>Ignorez simplement cet email. Votre mot de passe reste sécurisé.</p>
               <div class="footer">
-                <p><strong>Équipe ISETT - Institut Supérieur des Études Technologiques</strong></p>
-                <p style="font-size: 12px; color: #a0aec0; margin-top: 15px;">
-                  © ${new Date().getFullYear()} ISETT. Tous droits réservés.<br>
-                  Cet email a été envoyé automatiquement, merci de ne pas y répondre.
-                </p>
+                <p><strong>Équipe ISETT</strong></p>
+                <p>© ${new Date().getFullYear()} ISETT. Tous droits réservés.</p>
               </div>
             </div>
           </body>
           </html>
         `,
       });
-
+      
       console.log('✅ [ForgotPassword] Email sent successfully!');
     } catch (error) {
       console.error('❌ [ForgotPassword] Error:', error);
