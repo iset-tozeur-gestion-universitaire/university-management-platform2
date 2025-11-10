@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 
 import { UtilisateurModule } from './utilisateur/utilisateur.module';
-import { AuthModule } from './auth/auth.module'; 
+import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
@@ -11,16 +11,14 @@ import { MailerModule } from '@nestjs-modules/mailer';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,   // DEV only
-      logging: true,
+      host: 'localhost',
+      port: 5432,
+      username: 'postgres',
+      password: '1234',
+      database: 'university_db',
+      autoLoadEntities: true,
+      synchronize: true, // <--- très important pour créer les tables automatiquement
     }),
-    
     MailerModule.forRoot({
       transport: {
         host: process.env.MAIL_HOST,
@@ -34,15 +32,11 @@ import { MailerModule } from '@nestjs-modules/mailer';
         from: '"University Platform" <no-reply@university.com>',
       },
     }),
-  
-  ConfigModule.forRoot({
-        isGlobal: true, // makes config available everywhere
-      }),
-
-
-    
+    ConfigModule.forRoot({
+      isGlobal: true, // makes config available everywhere
+    }),
     UtilisateurModule,
-    AuthModule,            
+    AuthModule,
   ],
 })
 export class AppModule {}

@@ -13,10 +13,11 @@ export class Departement {
   @OneToMany(() => Specialite, (specialite) => specialite.departement, {
     cascade: true,
   })
+  specialites: Specialite[];
+
   @OneToMany(() => Enseignant, (enseignant) => enseignant.departement)
   enseignants: Enseignant[];
 
-  specialites: Specialite[];
   @OneToMany(() => Matiere, (matiere) => matiere.departement)
   matieres: Matiere[];
 }

@@ -18,10 +18,9 @@ export class Etudiant {
   @Column({ unique: true })
   cin: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'date' })
   dateNaissance: Date;
 
-  // 🔗 Relation avec Classe
   @ManyToOne(() => Classe, (classe) => classe.etudiants, { eager: true })
   classe: Classe;
 }

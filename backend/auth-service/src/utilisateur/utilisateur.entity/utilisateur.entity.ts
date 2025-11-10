@@ -30,12 +30,11 @@ export class Utilisateur {
   emailConfirmed: boolean;
 
   @Column({ type: 'varchar', nullable: true })
-  confirmationToken: string | null; 
+  confirmationToken: string | null;
 
   @Column({ nullable: true })
   resetToken: string;
 
   @Column({ nullable: true })
   resetTokenExpires: Date;
-  
 }

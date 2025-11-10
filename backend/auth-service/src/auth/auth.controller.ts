@@ -1,10 +1,7 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Headers, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { JwtAuthGuard } from './jwt.guard';
-import { ConfirmEmailDto } from './dto/confirm-email.dto';
-import { ResendConfirmationDto } from './dto/resend-confirmation.dto';
+import { CreateUserAdminDto } from './dto/create-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -16,25 +13,21 @@ export class AuthController {
     return this.auth.login(dto.email, dto.password);
   }
 
-  @Post('change-password')
-  changePassword(@Body() dto: ChangePasswordDto) {
-    return this.auth.changePassword(dto.email, dto.currentPassword, dto.newPassword);
-  }
-  
-  @Post('confirm-email')
-  confirmEmail(@Body() dto: ConfirmEmailDto) {
-    return this.auth.confirmEmail(dto.email, dto.token);
-  }
-
-  @Post('resend-confirmation')
-  resendConfirmation(@Body() dto: ResendConfirmationDto) {
-    return this.auth.resendConfirmation(dto.email);
-  }
-
-  // Exemple de route protégée
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  me() {
-    return { ok: true };
+  @Post('admin/create-user')
+  async createUserByAdmin(
+    @Body() dto: CreateUserAdminDto,
+    @Headers('x-api-key') apiKey: string,
+  ) {
+    const expectedKey = process.env.AUTH_API_KEY || 'secret_key_test';
+    if (!apiKey || apiKey !== expectedKey) {
+      throw new UnauthorizedException('Clé API invalide');
+    }
+    return this.auth.createUserByAdmin({
+      nom: dto.nom,
+      prenom: dto.prenom,
+      email: dto.email,
+      cin: dto.cin,
+      role: dto.role || 'etudiant',
+    });
   }
 }
