@@ -1,5 +1,5 @@
 // src/enseignant/enseignant.controller.ts
-import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Param, Body } from '@nestjs/common';
 import { EnseignantService } from './enseignant.service';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
 
@@ -20,6 +20,11 @@ export class EnseignantController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.enseignantService.findOne(+id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: CreateEnseignantDto) {
+    return this.enseignantService.update(+id, dto);
   }
 
   @Delete(':id')

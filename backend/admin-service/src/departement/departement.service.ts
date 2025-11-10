@@ -18,11 +18,11 @@ export class DepartementService {
   }
 
   findAll() {
-    return this.repo.find({ relations: ['specialites'] });
+    return this.repo.find();
   }
 
   findOne(id: number) {
-    return this.repo.findOne({ where: { id }, relations: ['specialites'] });
+    return this.repo.findOne({ where: { id } });
   }
 
   async update(id: number, dto: UpdateDepartementDto) {

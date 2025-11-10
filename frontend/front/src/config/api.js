@@ -29,7 +29,11 @@ adminApi.interceptors.request.use(addAuthToken);
 
 // Intercepteur pour gérer les erreurs d'authentification
 const handleAuthError = (error) => {
-  if (error.response?.status === 401) {
+  // Log l'erreur pour déboguer
+  console.error('API Error:', error.response?.status, error.response?.data);
+  
+  // Ne pas rediriger vers login pour les erreurs admin API (pour le développement)
+  if (error.response?.status === 401 && error.config.baseURL === AUTH_API_URL) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     window.location.href = "/login";

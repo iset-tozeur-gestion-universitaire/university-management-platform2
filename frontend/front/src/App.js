@@ -18,6 +18,7 @@ import ConfirmEmailPage from "./components/ConfirmEmailPage";
 import ChangePasswordPage from "./components/ChangePasswordPage";
 import ForgotPasswordPage from "./components/ForgotPasswordPage";
 import ResetPasswordPage from "./components/ResetPasswordPage";
+import TestConnection from "./components/TestConnection";
 import "./App.css";
 
 // Protected Route Component
@@ -46,6 +47,7 @@ function App() {
         <div className="App">
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/test-connection" element={<TestConnection />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
