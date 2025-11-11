@@ -1,0 +1,15 @@
+{
+  "name": "university-backend",
+  "version": "1.0.0",
+  "description": "University Management Platform - Backend Services",
+  "scripts": {
+    "start:dev": "concurrently \"cd auth-service && npm run start:dev\" \"cd admin-service && npm run start:dev\"",
+    "start:auth": "cd auth-service && npm run start:dev",
+    "start:admin": "cd admin-service && npm run start:dev",
+    "build": "concurrently \"cd auth-service && npm run build\" \"cd admin-service && npm run build\"",
+    "install:all": "cd auth-service && npm install && cd ../admin-service && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

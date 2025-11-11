@@ -30,8 +30,16 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
+    console.log('🔑 [Login] Attempt for email:', email);
+    
     const user = await this.usersRepo.findOne({ where: { email } });
-    if (!user) throw new UnauthorizedException('Identifiants invalides');
+    if (!user) {
+      console.log('❌ [Login] User not found');
+      throw new UnauthorizedException('Identifiants invalides');
+    }
+
+    console.log('✅ [Login] User found:', user.email);
+    console.log('🔐 [Login] Stored hash:', user.mdp_hash.substring(0, 20) + '...');
 
     const ok = await this.compare(password, user.mdp_hash);
     if (!ok) throw new UnauthorizedException('Mot de passe incorrect');

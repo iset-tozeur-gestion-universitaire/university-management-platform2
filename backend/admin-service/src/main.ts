@@ -32,6 +32,12 @@ async function findAvailablePort(
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // ✅ Configuration CORS pour le frontend
+  app.enableCors({
+    origin: ['http://localhost:3003', 'http://localhost:3004'], // URL du frontend
+    credentials: true,
+  });
+
   // ✅ Configuration Swagger
   const config = new DocumentBuilder()
     .setTitle('University Admin API')
