@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, BookOpen, Building2, UserCheck, FileText, Bell, Menu, X, TrendingUp, AlertCircle, Plus, Edit, Trash2, Search, Loader, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, Building2, UserCheck, FileText, Bell, Menu, X, TrendingUp, AlertCircle, Plus, Edit, Trash2, Search, Loader, LogOut, User, Mail, Send, Inbox, Archive } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { departementService, enseignantService, etudiantService, classeService } from '../services/adminServices';
@@ -11,6 +11,7 @@ import EditStudentModal from './EditStudentModal';
 import EditTeacherModal from './EditTeacherModal';
 import EditDepartmentModal from './EditDepartmentModal';
 import EditClasseModal from './EditClasseModal';
+import { BarChart, PieChart, LineChart, StatCard } from './Charts';
 
 const AdminDashboard = () => {
   const { user, logout, updateUser } = useAuth();
@@ -49,7 +50,22 @@ const AdminDashboard = () => {
   const [teachersData, setTeachersData] = useState([]);
   const [departmentsData, setDepartmentsData] = useState([]);
   const [classesData, setClassesData] = useState([]);
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('');
+  const [selectedClasseFilter, setSelectedClasseFilter] = useState('');
+
+  // États pour les notifications
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // États pour la messagerie
+  const [messages, setMessages] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [showComposeModal, setShowComposeModal] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [messageFilter, setMessageFilter] = useState('all'); // all, received, sent
 
   // États pour le profil
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -60,6 +76,9 @@ const AdminDashboard = () => {
     cin: user?.cin || '',
     role: user?.role || 'Administrateur'
   });
+
+  // État pour les activités récentes
+  const [recentActivities, setRecentActivities] = useState([]);
 
   // Mettre à jour profileData quand user change
   useEffect(() => {
@@ -74,10 +93,222 @@ const AdminDashboard = () => {
     }
   }, [user]);
 
+  // Fonction pour charger les activités récentes
+  const loadRecentActivities = () => {
+    try {
+      const savedActivities = localStorage.getItem('recentActivities');
+      if (savedActivities) {
+        const activities = JSON.parse(savedActivities);
+        // Garder seulement les 10 dernières activités
+        setRecentActivities(activities.slice(0, 10));
+      } else {
+        // Activités par défaut si aucune n'est enregistrée
+        const defaultActivities = [
+          { type: 'user', message: 'Système initialisé', time: getRelativeTime(new Date()) }
+        ];
+        setRecentActivities(defaultActivities);
+        localStorage.setItem('recentActivities', JSON.stringify(defaultActivities));
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des activités:', error);
+    }
+  };
+
+  // Fonction pour ajouter une nouvelle activité
+  const addActivity = (type, message) => {
+    try {
+      const newActivity = {
+        type,
+        message,
+        time: getRelativeTime(new Date()),
+        timestamp: new Date().toISOString()
+      };
+      
+      const savedActivities = localStorage.getItem('recentActivities');
+      const activities = savedActivities ? JSON.parse(savedActivities) : [];
+      
+      // Ajouter la nouvelle activité en premier
+      const updatedActivities = [newActivity, ...activities].slice(0, 10);
+      
+      localStorage.setItem('recentActivities', JSON.stringify(updatedActivities));
+      setRecentActivities(updatedActivities);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'activité:', error);
+    }
+  };
+
+  // Fonction pour obtenir le temps relatif
+  const getRelativeTime = (date) => {
+    const now = new Date();
+    const diff = Math.floor((now - new Date(date)) / 1000); // différence en secondes
+    
+    if (diff < 60) return 'À l\'instant';
+    if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
+    if (diff < 604800) return `Il y a ${Math.floor(diff / 86400)}j`;
+    return new Date(date).toLocaleDateString('fr-FR');
+  };
+
   // Chargement des statistiques au démarrage
   useEffect(() => {
     loadDashboardStats();
+    // Charger départements et classes pour les filtres
+    loadDepartments();
+    loadClasses();
+    // Charger les étudiants et enseignants pour la messagerie
+    loadStudents();
+    loadRecentActivities();
+    loadTeachers();
+    // Charger les notifications depuis localStorage
+    loadNotifications();
+    // Charger les messages depuis localStorage
+    loadMessages();
   }, []);
+
+  // Mettre à jour les temps relatifs toutes les minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const savedActivities = localStorage.getItem('recentActivities');
+      if (savedActivities) {
+        const activities = JSON.parse(savedActivities);
+        // Recalculer le temps relatif pour chaque activité
+        const updatedActivities = activities.map(activity => ({
+          ...activity,
+          time: getRelativeTime(activity.timestamp)
+        }));
+        setRecentActivities(updatedActivities);
+      }
+    }, 60000); // Toutes les 60 secondes
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Charger les messages depuis localStorage
+  const loadMessages = () => {
+    const saved = localStorage.getItem('messages');
+    if (saved) {
+      const msgs = JSON.parse(saved);
+      setMessages(msgs);
+      setUnreadMessages(msgs.filter(m => m.to === user?.email && !m.read).length);
+    } else {
+      // Messages de démonstration
+      const demoMessages = [
+        {
+          id: 1,
+          from: 'enseignant@iset.tn',
+          fromName: 'Prof. Ahmed Ben Ali',
+          to: user?.email,
+          subject: 'Demande de réunion',
+          body: 'Bonjour,\n\nJ\'aimerais organiser une réunion pour discuter du nouveau programme.\n\nCordialement,\nProf. Ahmed',
+          date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          read: false
+        },
+        {
+          id: 2,
+          from: 'etudiant@iset.tn',
+          fromName: 'Étudiant Mohamed Salah',
+          to: user?.email,
+          subject: 'Question sur inscription',
+          body: 'Bonjour,\n\nJe voudrais savoir comment modifier ma classe.\n\nMerci',
+          date: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          read: false
+        }
+      ];
+      setMessages(demoMessages);
+      setUnreadMessages(2);
+      localStorage.setItem('messages', JSON.stringify(demoMessages));
+    }
+  };
+
+  // Envoyer un message
+  const sendMessage = (to, toName, subject, body) => {
+    const newMessage = {
+      id: Date.now(),
+      from: user?.email,
+      fromName: `${user?.prenom} ${user?.nom}`,
+      to,
+      toName,
+      subject,
+      body,
+      date: new Date().toISOString(),
+      read: false,
+      sent: true
+    };
+    const updated = [newMessage, ...messages];
+    setMessages(updated);
+    localStorage.setItem('messages', JSON.stringify(updated));
+    addNotification(`Message envoyé à ${toName}`, 'success');
+  };
+
+  // Marquer message comme lu
+  const markMessageAsRead = (id) => {
+    const updated = messages.map(m => 
+      m.id === id ? { ...m, read: true } : m
+    );
+    setMessages(updated);
+    setUnreadMessages(updated.filter(m => m.to === user?.email && !m.read).length);
+    localStorage.setItem('messages', JSON.stringify(updated));
+  };
+
+  // Supprimer un message
+  const deleteMessage = (id) => {
+    const updated = messages.filter(m => m.id !== id);
+    setMessages(updated);
+    setUnreadMessages(updated.filter(m => m.to === user?.email && !m.read).length);
+    localStorage.setItem('messages', JSON.stringify(updated));
+    addNotification('Message supprimé', 'info');
+  };
+
+  // Charger les notifications depuis localStorage
+  const loadNotifications = () => {
+    const saved = localStorage.getItem('notifications');
+    if (saved) {
+      const notifs = JSON.parse(saved);
+      setNotifications(notifs);
+      setUnreadCount(notifs.filter(n => !n.read).length);
+    }
+  };
+
+  // Ajouter une notification
+  const addNotification = (message, type = 'info') => {
+    const newNotif = {
+      id: Date.now(),
+      message,
+      type, // 'info', 'success', 'warning', 'error'
+      time: new Date().toLocaleString('fr-FR'),
+      read: false
+    };
+    const updated = [newNotif, ...notifications];
+    setNotifications(updated);
+    setUnreadCount(updated.filter(n => !n.read).length);
+    localStorage.setItem('notifications', JSON.stringify(updated));
+  };
+
+  // Marquer comme lu
+  const markAsRead = (id) => {
+    const updated = notifications.map(n => 
+      n.id === id ? { ...n, read: true } : n
+    );
+    setNotifications(updated);
+    setUnreadCount(updated.filter(n => !n.read).length);
+    localStorage.setItem('notifications', JSON.stringify(updated));
+  };
+
+  // Marquer toutes comme lues
+  const markAllAsRead = () => {
+    const updated = notifications.map(n => ({ ...n, read: true }));
+    setNotifications(updated);
+    setUnreadCount(0);
+    localStorage.setItem('notifications', JSON.stringify(updated));
+  };
+
+  // Supprimer une notification
+  const deleteNotification = (id) => {
+    const updated = notifications.filter(n => n.id !== id);
+    setNotifications(updated);
+    setUnreadCount(updated.filter(n => !n.read).length);
+    localStorage.setItem('notifications', JSON.stringify(updated));
+  };
 
   // Chargement des données selon le menu actif
   useEffect(() => {
@@ -146,11 +377,24 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       console.log('🔄 Chargement des étudiants...');
+      const previousIds = studentsData.map(s => s.id);
       const result = await etudiantService.getAll();
       console.log('📥 Résultat étudiants:', result);
       if (result.success) {
         setStudentsData(result.data || []);
         console.log('✅ Étudiants chargés:', result.data?.length || 0);
+        if (result.data?.length > 0) {
+          console.log('🔍 Structure du premier étudiant:', result.data[0]);
+          console.log('🔍 Classe du premier étudiant:', result.data[0]?.classe);
+        }
+        
+        // Si un nouvel étudiant a été ajouté, créer une activité
+        if (previousIds.length > 0 && result.data) {
+          const newStudents = result.data.filter(s => !previousIds.includes(s.id));
+          newStudents.forEach(newStudent => {
+            addActivity('user', `Nouveau étudiant inscrit: ${newStudent.nom} ${newStudent.prenom}`);
+          });
+        }
       } else {
         setError(result.message);
         console.error('❌ Erreur:', result.message);
@@ -169,11 +413,20 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       console.log('🔄 Chargement des enseignants...');
+      const previousIds = teachersData.map(t => t.id);
       const result = await enseignantService.getAll();
       console.log('📥 Résultat enseignants:', result);
       if (result.success) {
         setTeachersData(result.data || []);
         console.log('✅ Enseignants chargés:', result.data?.length || 0);
+        
+        // Si un nouvel enseignant a été ajouté, créer une activité
+        if (previousIds.length > 0 && result.data) {
+          const newTeachers = result.data.filter(t => !previousIds.includes(t.id));
+          newTeachers.forEach(newTeacher => {
+            addActivity('user', `Nouvel enseignant ajouté: ${newTeacher.nom} ${newTeacher.prenom}`);
+          });
+        }
       } else {
         setError(result.message);
         console.error('❌ Erreur:', result.message);
@@ -192,12 +445,21 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       console.log('🔄 Chargement des départements...');
+      const previousIds = departmentsData.map(d => d.id);
       const data = await departementService.getAll();
       console.log('📥 Résultat départements:', data);
       // L'API retourne soit un tableau, soit { value: [...] }
       const departmentsArray = Array.isArray(data) ? data : (data.value || []);
       setDepartmentsData(departmentsArray);
       console.log('✅ Départements chargés:', departmentsArray.length);
+      
+      // Si un nouveau département a été ajouté, créer une activité
+      if (previousIds.length > 0) {
+        const newDepts = departmentsArray.filter(d => !previousIds.includes(d.id));
+        newDepts.forEach(newDept => {
+          addActivity('alert', `Nouveau département créé: ${newDept.nom}`);
+        });
+      }
     } catch (err) {
       console.error('❌ Erreur chargement départements:', err);
       setError('Erreur lors du chargement des départements');
@@ -212,12 +474,26 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       console.log('🔄 Chargement des classes...');
+      const previousIds = classesData.map(c => c.id);
       const data = await classeService.getAll();
       console.log('📥 Résultat classes:', data);
       // L'API retourne soit un tableau, soit { value: [...] }
       const classesArray = Array.isArray(data) ? data : (data.value || []);
       setClassesData(classesArray);
       console.log('✅ Classes chargées:', classesArray.length);
+      if (classesArray.length > 0) {
+        console.log('🔍 Structure de la première classe:', classesArray[0]);
+        console.log('🔍 Specialite:', classesArray[0]?.specialite);
+        console.log('🔍 Departement:', classesArray[0]?.specialite?.departement);
+      }
+      
+      // Si une nouvelle classe a été ajoutée, créer une activité
+      if (previousIds.length > 0) {
+        const newClasses = classesArray.filter(c => !previousIds.includes(c.id));
+        newClasses.forEach(newClasse => {
+          addActivity('alert', `Nouvelle classe créée: ${newClasse.nom}`);
+        });
+      }
     } catch (err) {
       console.error('❌ Erreur chargement classes:', err);
       setError('Erreur lors du chargement des classes');
@@ -231,15 +507,20 @@ const AdminDashboard = () => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet étudiant ?')) return;
     
     try {
+      const student = studentsData.find(s => s.id === id);
       const result = await etudiantService.delete(id);
       if (result.success) {
         loadStudents();
         loadDashboardStats();
+        addNotification(`✅ Étudiant ${student?.prenom} ${student?.nom} supprimé avec succès`, 'success');
+        addActivity('alert', `Étudiant supprimé: ${student?.nom} ${student?.prenom}`);
         alert('✅ Étudiant supprimé avec succès');
       } else {
+        addNotification(`❌ Erreur lors de la suppression de l'étudiant`, 'error');
         alert(`❌ ${result.message}`);
       }
     } catch (err) {
+      addNotification(`❌ Erreur lors de la suppression de l'étudiant`, 'error');
       alert('❌ Erreur lors de la suppression');
     }
   };
@@ -255,10 +536,12 @@ const AdminDashboard = () => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet enseignant ?')) return;
     
     try {
+      const teacher = teachersData.find(t => t.id === id);
       const result = await enseignantService.delete(id);
       if (result.success) {
         loadTeachers();
         loadDashboardStats();
+        addActivity('alert', `Enseignant supprimé: ${teacher?.nom} ${teacher?.prenom}`);
         alert('✅ Enseignant supprimé avec succès');
       } else {
         alert(`❌ ${result.message}`);
@@ -279,10 +562,12 @@ const AdminDashboard = () => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce département ?')) return;
     
     try {
+      const dept = departmentsData.find(d => d.id === id);
       const result = await departementService.delete(id);
       if (result.success) {
         loadDepartments();
         loadDashboardStats();
+        addActivity('alert', `Département supprimé: ${dept?.nom}`);
         alert('✅ Département supprimé avec succès');
       } else {
         alert(`❌ ${result.message}`);
@@ -303,10 +588,12 @@ const AdminDashboard = () => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette classe ?')) return;
     
     try {
+      const classe = classesData.find(c => c.id === id);
       const result = await classeService.delete(id);
       if (result.success) {
         loadClasses();
         loadDashboardStats();
+        addActivity('alert', `Classe supprimée: ${classe?.nom}`);
         alert('✅ Classe supprimée avec succès');
       } else {
         alert(`❌ ${result.message}`);
@@ -322,11 +609,6 @@ const AdminDashboard = () => {
     setShowEditClasseModal(true);
   };
 
-  const recentActivities = [
-    { type: 'user', message: 'Nouveau étudiant inscrit: Ahmed Ben Ali', time: 'Il y a 5 min' },
-    { type: 'document', message: 'Rapport mensuel généré', time: 'Il y a 2h' }
-  ];
-
   const menuItems = [
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
     { id: 'students', label: 'Étudiants', icon: Users },
@@ -334,21 +616,35 @@ const AdminDashboard = () => {
     { id: 'departments', label: 'Départements', icon: Building2 },
     { id: 'subjects', label: 'Classes', icon: BookOpen },
     { id: 'reports', label: 'Rapports', icon: FileText },
+    { id: 'messages', label: 'Messagerie', icon: Mail },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'profile', label: 'Mon Profil', icon: User }
   ];
 
   // Filtrer les données selon la recherche
-  const filteredStudents = studentsData.filter(student => 
-    student.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = studentsData.filter(student => {
+    const matchesSearch = 
+      student.nom?.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+      student.prenom?.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+      student.email?.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+      student.cin?.toLowerCase().includes(studentSearchTerm.toLowerCase());
+    
+    // Filtrer par classe
+    let matchesClasse = true;
+    if (selectedClasseFilter) {
+      const classeId = typeof student.classe === 'object' ? student.classe?.id : student.classe;
+      matchesClasse = classeId == selectedClasseFilter;
+    }
+    
+    return matchesSearch && matchesClasse;
+  });
 
   const filteredTeachers = teachersData.filter(teacher => 
-    teacher.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teacher.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teacher.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    teacher.nom?.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
+    teacher.prenom?.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
+    teacher.email?.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
+    teacher.cin?.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
+    teacher.telephone?.toLowerCase().includes(teacherSearchTerm.toLowerCase())
   );
 
   const filteredDepartments = departmentsData.filter(dept => 
@@ -356,55 +652,93 @@ const AdminDashboard = () => {
   );
 
   // Rendu du Dashboard
-  const renderDashboard = () => (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-blue-500 p-3 rounded-lg">
-              <Users size={24} className="text-white" />
-            </div>
-            <span className="text-sm font-semibold text-blue-600">Actifs</span>
-          </div>
-          <h3 className="text-gray-500 text-sm font-medium mb-1">Étudiants</h3>
-          <p className="text-3xl font-bold text-gray-800">{stats.students}</p>
+  const renderDashboard = () => {
+    // Données pour les graphiques
+    const statsBarData = [
+      { label: 'Étudiants', value: stats.students },
+      { label: 'Enseignants', value: stats.teachers },
+      { label: 'Départements', value: stats.departments },
+      { label: 'Classes', value: stats.classes }
+    ];
+
+    // Étudiants par département
+    const studentsByDeptData = departmentsData.map(dept => ({
+      label: dept.nom,
+      value: studentsData.filter(s => {
+        // Trouver la classe de l'étudiant et son département via spécialité
+        const classe = classesData.find(c => {
+          const classeId = typeof s.classe === 'object' ? s.classe?.id : s.classe;
+          return c.id == classeId;
+        });
+        if (!classe) return false;
+        const specialite = classe.specialite;
+        if (!specialite) return false;
+        const deptId = typeof specialite.departement === 'object' ? specialite.departement?.id : specialite.departement;
+        return deptId == dept.id;
+      }).length
+    })).filter(item => item.value > 0);
+
+    // Classes par département
+    const classesByDeptData = departmentsData.map(dept => ({
+      label: dept.nom,
+      value: classesData.filter(c => {
+        const specialite = c.specialite;
+        if (!specialite) return false;
+        const deptId = typeof specialite.departement === 'object' ? specialite.departement?.id : specialite.departement;
+        return deptId == dept.id;
+      }).length
+    })).filter(item => item.value > 0);
+
+    const teachersByDeptData = departmentsData.map(dept => ({
+      label: dept.nom,
+      value: teachersData.filter(t => {
+        const deptId = typeof t.departement === 'object' ? t.departement?.id : t.departement;
+        return deptId == dept.id;
+      }).length
+    })).filter(item => item.value > 0);
+
+    return (
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            title="Étudiants"
+            value={stats.students}
+            icon={Users}
+            color="blue"
+            subtitle="Total inscrits"
+          />
+          <StatCard
+            title="Enseignants"
+            value={stats.teachers}
+            icon={UserCheck}
+            color="green"
+            subtitle="Corps enseignant"
+          />
+          <StatCard
+            title="Départements"
+            value={stats.departments}
+            icon={Building2}
+            color="orange"
+            subtitle="Départements actifs"
+          />
+          <StatCard
+            title="Classes"
+            value={stats.classes}
+            icon={BookOpen}
+            color="purple"
+            subtitle="Classes ouvertes"
+          />
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-green-500 p-3 rounded-lg">
-              <UserCheck size={24} className="text-white" />
-            </div>
-            <span className="text-sm font-semibold text-green-600">Actifs</span>
-          </div>
-          <h3 className="text-gray-500 text-sm font-medium mb-1">Enseignants</h3>
-          <p className="text-3xl font-bold text-gray-800">{stats.teachers}</p>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <BarChart 
+            data={statsBarData} 
+            title="Vue d'ensemble de l'établissement"
+            height={300}
+          />
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-purple-500 p-3 rounded-lg">
-              <Building2 size={24} className="text-white" />
-            </div>
-            <span className="text-sm font-semibold text-purple-600">Total</span>
-          </div>
-          <h3 className="text-gray-500 text-sm font-medium mb-1">Départements</h3>
-          <p className="text-3xl font-bold text-gray-800">{stats.departments}</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-orange-500 p-3 rounded-lg">
-              <BookOpen size={24} className="text-white" />
-            </div>
-            <span className="text-sm font-semibold text-orange-600">Actives</span>
-          </div>
-          <h3 className="text-gray-500 text-sm font-medium mb-1">Classes</h3>
-          <p className="text-3xl font-bold text-gray-800">{stats.classes}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-gray-800">Statistiques par département</h3>
@@ -458,30 +792,9 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-
-      <div className="mt-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white">
-        <h3 className="text-xl font-bold mb-4">Actions rapides</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button onClick={() => setActiveMenu('students')} className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-4 transition-all text-left">
-            <Users size={24} className="mb-2" />
-            <p className="font-medium">Gérer étudiants</p>
-          </button>
-          <button onClick={() => setActiveMenu('teachers')} className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-4 transition-all text-left">
-            <UserCheck size={24} className="mb-2" />
-            <p className="font-medium">Gérer enseignants</p>
-          </button>
-          <button onClick={() => setActiveMenu('departments')} className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-4 transition-all text-left">
-            <Building2 size={24} className="mb-2" />
-            <p className="font-medium">Gérer départements</p>
-          </button>
-          <button onClick={() => setActiveMenu('reports')} className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-4 transition-all text-left">
-            <FileText size={24} className="mb-2" />
-            <p className="font-medium">Générer rapport</p>
-          </button>
-        </div>
-      </div>
     </>
-  );
+    );
+  };
 
   // Rendu de la page Étudiants
   const renderStudents = () => (
@@ -497,17 +810,32 @@ const AdminDashboard = () => {
         </button>
       </div>
       
-      <div className="mb-4">
-        <div className="relative">
+      <div className="mb-4 flex gap-3 items-center">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input 
             type="text" 
-            placeholder="Rechercher un étudiant..." 
+            placeholder="Rechercher par nom, prénom, email ou CIN..." 
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={studentSearchTerm}
+            onChange={(e) => setStudentSearchTerm(e.target.value)}
           />
         </div>
+        
+        <select
+          value={selectedClasseFilter}
+          onChange={(e) => setSelectedClasseFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[200px]"
+        >
+          <option value="">Toutes les classes</option>
+          {classesData.map(classe => (
+            <option key={classe.id} value={classe.id}>{classe.nom}</option>
+          ))}
+        </select>
+      </div>
+      
+      <div className="mb-4 text-sm text-gray-600">
+        Affichage de <span className="font-semibold text-gray-800">{filteredStudents.length}</span> étudiant{filteredStudents.length > 1 ? 's' : ''} sur <span className="font-semibold text-gray-800">{studentsData.length}</span>
       </div>
 
       {loading ? (
@@ -589,10 +917,10 @@ const AdminDashboard = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input 
             type="text" 
-            placeholder="Rechercher un enseignant..." 
+            placeholder="Rechercher par nom, prénom, email, CIN ou téléphone..." 
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={teacherSearchTerm}
+            onChange={(e) => setTeacherSearchTerm(e.target.value)}
           />
         </div>
       </div>
@@ -777,74 +1105,460 @@ const AdminDashboard = () => {
   );
 
   // Rendu de la page Rapports
-  const renderReports = () => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-2xl font-bold text-gray-800">Rapports et Statistiques</h3>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <FileText size={20} />
-          Générer rapport
-        </button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
-          <FileText size={32} className="text-blue-600 mb-3" />
-          <h4 className="text-lg font-bold text-gray-800 mb-2">Rapport Étudiants</h4>
-          <p className="text-sm text-gray-600 mb-4">Liste complète des étudiants ({stats.students})</p>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Télécharger PDF</button>
-        </div>
-        <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
-          <FileText size={32} className="text-green-600 mb-3" />
-          <h4 className="text-lg font-bold text-gray-800 mb-2">Rapport Enseignants</h4>
-          <p className="text-sm text-gray-600 mb-4">Liste complète des enseignants ({stats.teachers})</p>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Télécharger PDF</button>
-        </div>
-        <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
-          <FileText size={32} className="text-purple-600 mb-3" />
-          <h4 className="text-lg font-bold text-gray-800 mb-2">Rapport Départements</h4>
-          <p className="text-sm text-gray-600 mb-4">Vue d'ensemble des départements ({stats.departments})</p>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Télécharger CSV</button>
-        </div>
-        <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
-          <FileText size={32} className="text-orange-600 mb-3" />
-          <h4 className="text-lg font-bold text-gray-800 mb-2">Rapport Institutionnel</h4>
-          <p className="text-sm text-gray-600 mb-4">Vue d'ensemble de l'établissement</p>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Télécharger PDF</button>
-        </div>
-      </div>
-    </div>
-  );
+  // Fonctions de génération de rapports
+  const generateStudentsCSV = () => {
+    if (studentsData.length === 0) {
+      alert('Aucune donnée à exporter');
+      return;
+    }
 
-  // Rendu de la page Notifications
-  const renderNotifications = () => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-2xl font-bold text-gray-800">Centre de Notifications</h3>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <Plus size={20} />
-          Nouvelle notification
-        </button>
-      </div>
-      <div className="space-y-4">
-        {recentActivities.map((activity, index) => (
-          <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex gap-4">
-              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                {activity.type === 'user' && <Users size={20} className="text-blue-600" />}
-                {activity.type === 'alert' && <AlertCircle size={20} className="text-orange-600" />}
-                {activity.type === 'document' && <FileText size={20} className="text-purple-600" />}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-gray-800 font-medium mb-1">{activity.message}</p>
-                <p className="text-xs text-gray-500">{activity.time}</p>
-              </div>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Marquer lu</button>
+    const headers = ['ID', 'Nom', 'Prénom', 'Email', 'CIN', 'Classe'];
+    const rows = studentsData.map(s => [
+      s.id,
+      s.nom,
+      s.prenom,
+      s.email,
+      s.cin || '',
+      s.classe?.nom || 'Non assigné'
+    ]);
+
+    let csvContent = headers.join(',') + '\n';
+    csvContent += rows.map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `rapport_etudiants_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    addActivity('document', 'Rapport étudiants généré et téléchargé');
+  };
+
+  const generateTeachersCSV = () => {
+    if (teachersData.length === 0) {
+      alert('Aucune donnée à exporter');
+      return;
+    }
+
+    const headers = ['ID', 'Nom', 'Prénom', 'Email', 'CIN', 'Téléphone', 'Spécialité', 'Grade', 'Rôle'];
+    const rows = teachersData.map(t => [
+      t.id,
+      t.nom,
+      t.prenom,
+      t.email,
+      t.cin || '',
+      t.telephone || '',
+      t.specialite || '',
+      t.grade || '',
+      t.role || 'enseignant'
+    ]);
+
+    let csvContent = headers.join(',') + '\n';
+    csvContent += rows.map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `rapport_enseignants_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    addActivity('document', 'Rapport enseignants généré et téléchargé');
+  };
+
+  const generateDepartmentsCSV = () => {
+    if (departmentsData.length === 0) {
+      alert('Aucune donnée à exporter');
+      return;
+    }
+
+    const headers = ['ID', 'Nom', 'Nombre de classes'];
+    const rows = departmentsData.map(d => [
+      d.id,
+      d.nom,
+      classesData.filter(c => c.specialite?.departement?.id === d.id || c.departement?.id === d.id).length
+    ]);
+
+    let csvContent = headers.join(',') + '\n';
+    csvContent += rows.map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `rapport_departements_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    addActivity('document', 'Rapport départements généré et téléchargé');
+  };
+
+  const generateInstitutionalReport = () => {
+    const report = `RAPPORT INSTITUTIONNEL
+Date: ${new Date().toLocaleDateString('fr-FR')}
+==========================================
+
+STATISTIQUES GÉNÉRALES:
+- Nombre total d'étudiants: ${stats.students}
+- Nombre total d'enseignants: ${stats.teachers}
+- Nombre de départements: ${stats.departments}
+- Nombre de classes: ${stats.classes}
+
+DÉPARTEMENTS:
+${departmentsData.map(d => `- ${d.nom}`).join('\n')}
+
+CLASSES:
+${classesData.map(c => `- ${c.nom}`).join('\n')}
+`;
+
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `rapport_institutionnel_${new Date().toISOString().split('T')[0]}.txt`;
+    link.click();
+    addActivity('document', 'Rapport institutionnel généré et téléchargé');
+  };
+
+  const renderReports = () => {
+    // Étudiants par département
+    const studentsByDeptData = departmentsData.map(dept => ({
+      label: dept.nom,
+      value: studentsData.filter(s => {
+        const classe = classesData.find(c => {
+          const classeId = typeof s.classe === 'object' ? s.classe?.id : s.classe;
+          return c.id == classeId;
+        });
+        if (!classe) return false;
+        const specialite = classe.specialite;
+        if (!specialite) return false;
+        const deptId = typeof specialite.departement === 'object' ? specialite.departement?.id : specialite.departement;
+        return deptId == dept.id;
+      }).length
+    })).filter(item => item.value > 0);
+
+    // Classes par département
+    const classesByDeptData = departmentsData.map(dept => ({
+      label: dept.nom,
+      value: classesData.filter(c => {
+        const specialite = c.specialite;
+        if (!specialite) return false;
+        const deptId = typeof specialite.departement === 'object' ? specialite.departement?.id : specialite.departement;
+        return deptId == dept.id;
+      }).length
+    })).filter(item => item.value > 0);
+
+    const teachersByGradeData = [
+      { label: 'Professeur', value: teachersData.filter(t => t.grade === 'Professeur').length },
+      { label: 'Maître Assistant', value: teachersData.filter(t => t.grade === 'Maître Assistant').length },
+      { label: 'Assistant', value: teachersData.filter(t => t.grade === 'Assistant').length },
+      { label: 'Technicien', value: teachersData.filter(t => t.grade === 'Technicien').length }
+    ].filter(item => item.value > 0);
+
+    return (
+      <div className="space-y-6">
+
+
+        {/* Section Exports */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-gray-800">Rapports et Exports</h3>
+            <p className="text-sm text-gray-600">Téléchargez les données en format CSV</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <FileText size={32} className="text-blue-600 mb-3" />
+              <h4 className="text-lg font-bold text-gray-800 mb-2">Rapport Étudiants</h4>
+              <p className="text-sm text-gray-600 mb-4">Liste complète des étudiants ({stats.students})</p>
+              <button 
+                onClick={generateStudentsCSV}
+                className="text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium"
+              >
+                Télécharger CSV
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <FileText size={32} className="text-green-600 mb-3" />
+              <h4 className="text-lg font-bold text-gray-800 mb-2">Rapport Enseignants</h4>
+              <p className="text-sm text-gray-600 mb-4">Liste complète des enseignants ({stats.teachers})</p>
+              <button 
+                onClick={generateTeachersCSV}
+                className="text-sm bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-medium"
+              >
+                Télécharger CSV
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <FileText size={32} className="text-purple-600 mb-3" />
+              <h4 className="text-lg font-bold text-gray-800 mb-2">Rapport Départements</h4>
+              <p className="text-sm text-gray-600 mb-4">Vue d'ensemble des départements ({stats.departments})</p>
+              <button 
+                onClick={generateDepartmentsCSV}
+                className="text-sm bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 font-medium"
+              >
+                Télécharger CSV
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <FileText size={32} className="text-orange-600 mb-3" />
+              <h4 className="text-lg font-bold text-gray-800 mb-2">Rapport Institutionnel</h4>
+              <p className="text-sm text-gray-600 mb-4">Vue d'ensemble de l'établissement</p>
+              <button 
+                onClick={generateInstitutionalReport}
+                className="text-sm bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 font-medium"
+              >
+                Télécharger TXT
+              </button>
             </div>
           </div>
-        ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  // Rendu de la page Notifications
+  const renderNotifications = () => {
+    const getNotificationIcon = (type) => {
+      switch(type) {
+        case 'success': return <Users size={20} className="text-green-600" />;
+        case 'warning': return <AlertCircle size={20} className="text-orange-600" />;
+        case 'error': return <AlertCircle size={20} className="text-red-600" />;
+        default: return <Bell size={20} className="text-blue-600" />;
+      }
+    };
+
+    const getNotificationBgColor = (type) => {
+      switch(type) {
+        case 'success': return 'bg-green-50';
+        case 'warning': return 'bg-orange-50';
+        case 'error': return 'bg-red-50';
+        default: return 'bg-blue-50';
+      }
+    };
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-2xl font-bold text-gray-800">Centre de Notifications</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              {unreadCount > 0 ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}` : 'Toutes les notifications sont lues'}
+            </p>
+          </div>
+          {unreadCount > 0 && (
+            <button 
+              onClick={markAllAsRead}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Tout marquer comme lu
+            </button>
+          )}
+        </div>
+
+        {notifications.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <Bell size={40} className="mx-auto mb-4 text-gray-300" />
+            <p>Aucune notification pour le moment</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {notifications.map((notif) => (
+              <div 
+                key={notif.id} 
+                className={`border rounded-lg p-4 transition-all ${
+                  notif.read ? 'border-gray-200 bg-white' : 'border-blue-200 bg-blue-50'
+                }`}
+              >
+                <div className="flex gap-4">
+                  <div className={`w-10 h-10 ${getNotificationBgColor(notif.type)} rounded-full flex items-center justify-center flex-shrink-0`}>
+                    {getNotificationIcon(notif.type)}
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-sm mb-1 ${notif.read ? 'text-gray-600' : 'text-gray-800 font-medium'}`}>
+                      {notif.message}
+                    </p>
+                    <p className="text-xs text-gray-500">{notif.time}</p>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    {!notif.read && (
+                      <button 
+                        onClick={() => markAsRead(notif.id)}
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Marquer lu
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => deleteNotification(notif.id)}
+                      className="text-gray-400 hover:text-red-600"
+                      title="Supprimer"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Rendu de la page Messagerie
+  const renderMessages = () => {
+    const receivedMessages = messages.filter(m => m.to === user?.email);
+    const sentMessages = messages.filter(m => m.from === user?.email);
+    
+    const filteredMessages = messageFilter === 'received' ? receivedMessages :
+                            messageFilter === 'sent' ? sentMessages :
+                            messages;
+
+    return (
+      <div className="space-y-6">
+        {/* Header avec bouton composer */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-800">Messagerie Interne</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {unreadMessages > 0 ? `${unreadMessages} message${unreadMessages > 1 ? 's' : ''} non lu${unreadMessages > 1 ? 's' : ''}` : 'Tous les messages sont lus'}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowComposeModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Send size={20} />
+              Nouveau message
+            </button>
+          </div>
+
+          {/* Filtres */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setMessageFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                messageFilter === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Inbox size={16} className="inline mr-2" />
+              Tous ({messages.length})
+            </button>
+            <button
+              onClick={() => setMessageFilter('received')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                messageFilter === 'received' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Mail size={16} className="inline mr-2" />
+              Reçus ({receivedMessages.length})
+            </button>
+            <button
+              onClick={() => setMessageFilter('sent')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                messageFilter === 'sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Send size={16} className="inline mr-2" />
+              Envoyés ({sentMessages.length})
+            </button>
+          </div>
+
+          {/* Liste des messages */}
+          {filteredMessages.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Mail size={40} className="mx-auto mb-4 text-gray-300" />
+              <p>Aucun message</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredMessages.sort((a, b) => new Date(b.date) - new Date(a.date)).map((msg) => (
+                <div
+                  key={msg.id}
+                  onClick={() => {
+                    setSelectedMessage(msg);
+                    if (msg.to === user?.email && !msg.read) {
+                      markMessageAsRead(msg.id);
+                    }
+                  }}
+                  className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                    msg.to === user?.email && !msg.read
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        {msg.to === user?.email && !msg.read && (
+                          <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                        )}
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                          {msg.from === user?.email ? 
+                            msg.toName?.charAt(0).toUpperCase() : 
+                            msg.fromName?.charAt(0).toUpperCase()
+                          }
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-800">
+                            {msg.from === user?.email ? `À: ${msg.toName}` : `De: ${msg.fromName}`}
+                          </p>
+                          <p className="text-sm text-gray-600">{msg.subject}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">
+                            {new Date(msg.date).toLocaleDateString('fr-FR')}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(msg.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 ml-14 line-clamp-2">
+                        {msg.body}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Supprimer ce message ?')) {
+                          deleteMessage(msg.id);
+                          if (selectedMessage?.id === msg.id) {
+                            setSelectedMessage(null);
+                          }
+                        }
+                      }}
+                      className="ml-4 text-gray-400 hover:text-red-600 transition-colors"
+                      title="Supprimer"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Modal de composition de message */}
+        {showComposeModal && (
+          <ComposeMessageModal
+            onClose={() => setShowComposeModal(false)}
+            onSend={sendMessage}
+            teachers={teachersData}
+            students={studentsData}
+          />
+        )}
+
+        {/* Modal de lecture de message */}
+        {selectedMessage && (
+          <ViewMessageModal
+            message={selectedMessage}
+            onClose={() => setSelectedMessage(null)}
+            onReply={(to, toName) => {
+              setSelectedMessage(null);
+              setShowComposeModal(true);
+            }}
+            currentUserEmail={user?.email}
+          />
+        )}
+      </div>
+    );
+  };
 
   // Rendu de la page Profil
   const renderProfile = () => {
@@ -1015,6 +1729,193 @@ const AdminDashboard = () => {
     );
   };
 
+  // Modal de composition de message
+  const ComposeMessageModal = ({ onClose, onSend, teachers, students }) => {
+    const [to, setTo] = useState('');
+    const [toName, setToName] = useState('');
+    const [subject, setSubject] = useState('');
+    const [body, setBody] = useState('');
+    const [recipientType, setRecipientType] = useState('teacher');
+
+    const handleSend = () => {
+      if (!to || !subject || !body) {
+        alert('Veuillez remplir tous les champs');
+        return;
+      }
+      onSend(to, toName, subject, body);
+      onClose();
+    };
+
+    const recipients = recipientType === 'teacher' ? teachers : students;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-bold text-gray-800">Nouveau Message</h3>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Type de destinataire</label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="teacher"
+                    checked={recipientType === 'teacher'}
+                    onChange={(e) => { setRecipientType(e.target.value); setTo(''); setToName(''); }}
+                    className="mr-2"
+                  />
+                  Enseignant
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="student"
+                    checked={recipientType === 'student'}
+                    onChange={(e) => { setRecipientType(e.target.value); setTo(''); setToName(''); }}
+                    className="mr-2"
+                  />
+                  Étudiant
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Destinataire *</label>
+              <select
+                value={to}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                  const selected = recipients.find(r => r.email === e.target.value);
+                  setToName(selected ? `${selected.prenom} ${selected.nom}` : '');
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Sélectionner un destinataire</option>
+                {recipients.map(r => (
+                  <option key={r.id} value={r.email}>
+                    {r.prenom} {r.nom} ({r.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sujet *</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Sujet du message"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Message *</label>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Écrivez votre message ici..."
+                rows="8"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSend}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Send size={18} />
+              Envoyer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Modal de lecture de message
+  const ViewMessageModal = ({ message, onClose, onReply, currentUserEmail }) => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-bold text-gray-800">{message.subject}</h3>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {message.from === currentUserEmail ? 
+                  message.toName?.charAt(0).toUpperCase() : 
+                  message.fromName?.charAt(0).toUpperCase()
+                }
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-800">
+                  {message.from === currentUserEmail ? 
+                    `À: ${message.toName}` : 
+                    `De: ${message.fromName}`
+                  }
+                </p>
+                <p className="text-sm text-gray-600">
+                  {message.from === currentUserEmail ? message.to : message.from}
+                </p>
+              </div>
+              <div className="text-right text-sm text-gray-500">
+                <p>{new Date(message.date).toLocaleDateString('fr-FR')}</p>
+                <p>{new Date(message.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+            </div>
+
+            <div className="prose max-w-none">
+              <p className="whitespace-pre-wrap text-gray-700">{message.body}</p>
+            </div>
+          </div>
+
+          <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Fermer
+            </button>
+            {message.from !== currentUserEmail && (
+              <button
+                onClick={() => onReply(message.from, message.fromName)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Send size={18} />
+                Répondre
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Fonction pour rendre le contenu selon le menu actif
   const renderContent = () => {
     switch (activeMenu) {
@@ -1024,6 +1925,7 @@ const AdminDashboard = () => {
       case 'departments': return renderDepartments();
       case 'subjects': return renderSubjects();
       case 'reports': return renderReports();
+      case 'messages': return renderMessages();
       case 'notifications': return renderNotifications();
       case 'profile': return renderProfile();
       default: return renderDashboard();
@@ -1046,7 +1948,7 @@ const AdminDashboard = () => {
             <button
               key={item.id}
               onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${
                 activeMenu === item.id
                   ? 'bg-blue-700 shadow-lg'
                   : 'hover:bg-blue-800'
@@ -1054,6 +1956,16 @@ const AdminDashboard = () => {
             >
               <item.icon size={20} />
               {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
+              {item.id === 'messages' && unreadMessages > 0 && (
+                <span className="absolute top-2 right-2 w-5 h-5 bg-green-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
+              {item.id === 'notifications' && unreadCount > 0 && (
+                <span className="absolute top-2 right-2 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -1091,9 +2003,29 @@ const AdminDashboard = () => {
               <p className="text-sm text-gray-500">Plateforme de gestion universitaire</p>
             </div>
             <div className="flex items-center gap-4">
-              <button className="relative p-2 hover:bg-gray-100 rounded-full">
+              <button 
+                onClick={() => setActiveMenu('messages')}
+                className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+                title="Messagerie"
+              >
+                <Mail size={20} className="text-gray-600" />
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
+              </button>
+              <button 
+                onClick={() => setActiveMenu('notifications')}
+                className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+                title="Notifications"
+              >
                 <Bell size={20} className="text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
               <button 
                 onClick={loadDashboardStats}

@@ -80,8 +80,22 @@ export class ClasseService {
     return 1; // Par défaut
   }
 
-  findAll() {
-    return this.repo.find({ relations: ['specialite', 'specialite.departement', 'specialite.niveau'] });
+  async findAll() {
+    const classes = await this.repo
+      .createQueryBuilder('classe')
+      .leftJoinAndSelect('classe.specialite', 'specialite')
+      .leftJoinAndSelect('specialite.departement', 'departement')
+      .leftJoinAndSelect('classe.niveau', 'niveau')
+      .getMany();
+    
+    console.log('🔍 [ClasseService] Classes chargées:', classes.length);
+    if (classes.length > 0) {
+      console.log('🔍 [ClasseService] Première classe:', classes[0]);
+      console.log('🔍 [ClasseService] Specialite:', classes[0]?.specialite);
+      console.log('🔍 [ClasseService] Departement:', classes[0]?.specialite?.departement);
+    }
+    
+    return classes;
   }
 
   findOne(id: number) {
