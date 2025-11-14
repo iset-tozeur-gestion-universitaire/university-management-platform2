@@ -7,6 +7,8 @@ import { SpecialiteModule } from './specialite/specialite.module';
 import { DepartementModule } from './departement/departement.module';
 import { EnseignantModule } from './enseignant/enseignant.module';
 import { EtudiantModule } from './etudiant/etudiant.module';
+import { MatiereModule } from './matiere/matiere.module';
+import { AbsenceModule } from './absence/absence.module';
 
 @Module({
   imports: [
@@ -16,7 +18,7 @@ import { EtudiantModule } from './etudiant/etudiant.module';
       host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: '123456789',
+      password: 'postgres',
       database: 'university_db',
       autoLoadEntities: true,
       synchronize: true, // <--- très important pour créer les tables automatiquement
@@ -28,6 +30,8 @@ import { EtudiantModule } from './etudiant/etudiant.module';
     NiveauModule,
     ClasseModule,
     EtudiantModule,
+    MatiereModule,
+    AbsenceModule,
   ],
 })
 export class AppModule {}
