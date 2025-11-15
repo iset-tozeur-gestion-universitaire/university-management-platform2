@@ -45,13 +45,16 @@ export class ClasseService {
    * {CODE_SPECIALITE} {NUMERO_NIVEAU}{COMPTEUR}
    * Exemples: DSI 21, DSI 22, TI 11, GM 31
    */
-  private async genererNomClasse(specialite: Specialite, niveau: Niveau): Promise<string> {
+  private async genererNomClasse(
+    specialite: Specialite,
+    niveau: Niveau,
+  ): Promise<string> {
     // Extraire le code de la spécialité (ex: "DSI", "TI", "GM")
     const codeSpecialite = specialite.nom.split(' ')[0].toUpperCase();
-    
+
     // Extraire le numéro du niveau (1, 2, 3, etc.)
     const numeroNiveau = this.extraireNumeroNiveau(niveau.nom);
-    
+
     // Chercher toutes les classes dont le nom commence par le pattern attendu (ex: "TI 1")
     // Pour gérer les données existantes qui peuvent avoir des specialiteId différents
     const pattern = `${codeSpecialite} ${numeroNiveau}%`;
@@ -59,10 +62,10 @@ export class ClasseService {
       .createQueryBuilder('classe')
       .where('classe.nom LIKE :pattern', { pattern })
       .getCount();
-    
+
     // Compteur commence à 1
     const compteur = classesExistantes + 1;
-    
+
     // Format final: DSI 21, DSI 22, TI 11, etc.
     return `${codeSpecialite} ${numeroNiveau}${compteur}`;
   }
@@ -87,14 +90,17 @@ export class ClasseService {
       .leftJoinAndSelect('specialite.departement', 'departement')
       .leftJoinAndSelect('classe.niveau', 'niveau')
       .getMany();
-    
+
     console.log('🔍 [ClasseService] Classes chargées:', classes.length);
     if (classes.length > 0) {
       console.log('🔍 [ClasseService] Première classe:', classes[0]);
       console.log('🔍 [ClasseService] Specialite:', classes[0]?.specialite);
-      console.log('🔍 [ClasseService] Departement:', classes[0]?.specialite?.departement);
+      console.log(
+        '🔍 [ClasseService] Departement:',
+        classes[0]?.specialite?.departement,
+      );
     }
-    
+
     return classes;
   }
 
@@ -133,7 +139,10 @@ export class ClasseService {
 
     // Régénérer le nom si niveau ou spécialité changent
     if (nomMisAJour) {
-      classe.nom = await this.genererNomClasse(classe.specialite, classe.niveau);
+      classe.nom = await this.genererNomClasse(
+        classe.specialite,
+        classe.niveau,
+      );
     }
 
     return this.repo.save(classe);

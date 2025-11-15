@@ -26,7 +26,7 @@ export class SpecialiteEnseignement {
   validateNom() {
     if (this.nom) this.nom = this.nom.trim();
     if (!this.nom) {
-      throw new Error('Le nom de la spécialité d\'enseignement est obligatoire');
+      throw new Error("Le nom de la spécialité d'enseignement est obligatoire");
     }
   }
 }

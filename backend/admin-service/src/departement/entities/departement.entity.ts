@@ -1,6 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, BeforeInsert, BeforeUpdate } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  BeforeInsert,
+  BeforeUpdate,
+} from 'typeorm';
 import { Specialite } from '../../specialite/entities/specialite.entity';
 import { Enseignant } from '../../enseignant/enseignant.entity';
+import { Salle } from '../../salle/entities/salle.entity';
+import { Matiere } from '../../matiere/entities/matiere.entity';
 
 @Entity()
 export class Departement {
@@ -10,7 +19,9 @@ export class Departement {
   @Column({ unique: true, nullable: false })
   nom: string;
 
-  @Column({ unique: true, nullable: false })
+  // Rendre temporairement nullable pour permettre la synchronisation avec des lignes existantes
+  // qui n'ont pas encore de code. On pourra remplir puis remettre non-nullable.
+  @Column({ unique: true, nullable: true })
   code: string;
 
   // Validation avant insertion/mise à jour
@@ -30,4 +41,9 @@ export class Departement {
 
   @OneToMany(() => Enseignant, (enseignant) => enseignant.departement)
   enseignants: Enseignant[];
+  @OneToMany(() => Salle, (salle) => salle.departement)
+  salles: Salle[];
+
+  @OneToMany(() => Matiere, (matiere) => matiere.departement)
+  matieres: Matiere[];
 }

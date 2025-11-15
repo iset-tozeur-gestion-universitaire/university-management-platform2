@@ -52,7 +52,7 @@ export class EtudiantService {
 
   async update(id: number, dto: UpdateEtudiantDto) {
     const etudiant = await this.findOne(id);
-    
+
     if (dto.classeId) {
       const classe = await this.classeRepo.findOne({
         where: { id: dto.classeId },

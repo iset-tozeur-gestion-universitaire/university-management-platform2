@@ -6,9 +6,11 @@ import {
   ManyToOne,
   BeforeInsert,
   BeforeUpdate,
+  ManyToMany,
 } from 'typeorm';
 import { Departement } from '../departement/entities/departement.entity';
 import { SpecialiteEnseignement } from './specialite-enseignement.entity';
+import { Matiere } from '../matiere/entities/matiere.entity';
 
 @Entity()
 export class Enseignant {
@@ -31,13 +33,13 @@ export class Enseignant {
   telephone: string;
 
   @Column({ nullable: true })
-  password: string;  // Mot de passe haché (bcrypt)
+  password: string; // Mot de passe haché (bcrypt)
 
   @Column({ default: true })
-  mustChangePassword: boolean;  // Force changement de mot de passe au 1er login
+  mustChangePassword: boolean; // Force changement de mot de passe au 1er login
 
   @Column({ default: 'enseignant' })
-  role: string;  // 'enseignant' ou 'directeur_departement'
+  role: string; // 'enseignant' ou 'directeur_departement'
 
   @Column({ nullable: true })
   grade: string;
@@ -77,4 +79,6 @@ export class Enseignant {
 
   // ❌ RETIRÉ: classes - Les classes changent chaque année via l'emploi du temps
   // L'association enseignant-classe se fera via un module "Emploi du Temps" ou "Affectation"
+  @ManyToMany(() => Matiere, (matiere) => matiere.enseignants)
+  matieres: Matiere[];
 }

@@ -22,9 +22,18 @@ async function seed() {
   try {
     // 1. Créer des départements
     console.log('📁 Création des départements...');
-    const dept1 = await departementService.create({ nom: 'Informatique', code: 'INFO' });
-    const dept2 = await departementService.create({ nom: 'Mathématiques', code: 'MATH' });
-    const dept3 = await departementService.create({ nom: 'Physique', code: 'PHY' });
+    const dept1 = await departementService.create({
+      nom: 'Informatique',
+      code: 'INFO',
+    });
+    const dept2 = await departementService.create({
+      nom: 'Mathématiques',
+      code: 'MATH',
+    });
+    const dept3 = await departementService.create({
+      nom: 'Physique',
+      code: 'PHY',
+    });
     console.log('✅ 3 départements créés\n');
 
     // 2. Créer des spécialités
@@ -96,11 +105,11 @@ async function seed() {
     console.log('✅ 6 classes créées avec noms auto-générés\n');
 
     // 5. Créer des spécialités d'enseignement (pour les enseignants)
-    console.log('� Création des spécialités d\'enseignement...');
+    console.log("� Création des spécialités d'enseignement...");
     const specEns1 = { id: 1 }; // Programmation (supposons qu'elle existe avec id=1)
     const specEns2 = { id: 7 }; // Sécurité informatique (id=7)
     const specEns3 = { id: 23 }; // Mathématiques (id=23)
-    console.log('✅ Utilisation des spécialités d\'enseignement existantes\n');
+    console.log("✅ Utilisation des spécialités d'enseignement existantes\n");
 
     // 6. Créer des enseignants
     console.log('�👨‍🏫 Création des enseignants...');

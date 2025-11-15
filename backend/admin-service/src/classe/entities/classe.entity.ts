@@ -11,6 +11,7 @@ import {
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Specialite } from '../../specialite/entities/specialite.entity';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
+import { Matiere } from '../../matiere/entities/matiere.entity';
 
 @Entity()
 export class Classe {
@@ -41,7 +42,9 @@ export class Classe {
   specialite: Specialite;
 
   // ❌ RETIRÉ: enseignants - Les classes changent chaque année, géré via emploi du temps
-  
+
   @OneToMany(() => Etudiant, (etudiant) => etudiant.classe)
   etudiants: Etudiant[];
+  @OneToMany(() => Matiere, (matiere) => matiere.classe)
+  matieres: Matiere[];
 }

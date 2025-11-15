@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Specialite } from '../../specialite/entities/specialite.entity';
 import { Classe } from '../../classe/entities/classe.entity';
+import { Matiere } from '../../matiere/entities/matiere.entity';
 
 @Entity()
 export class Niveau {
@@ -37,4 +38,6 @@ export class Niveau {
     cascade: true,
   })
   classes: Classe[];
+  @OneToMany(() => Matiere, (matiere) => matiere.niveau)
+  matieres: Matiere[];
 }

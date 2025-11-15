@@ -13,9 +13,9 @@ export class DepartementService {
   ) {}
 
   create(dto: CreateDepartementDto) {
-    const dep = this.repo.create({ 
+    const dep = this.repo.create({
       nom: dto.nom,
-      code: dto.code 
+      code: dto.code,
     });
     return this.repo.save(dep);
   }

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, BeforeInsert, BeforeUpdate } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  BeforeInsert,
+  BeforeUpdate,
+} from 'typeorm';
 import { Classe } from '../../classe/entities/classe.entity';
 
 @Entity()
@@ -15,14 +22,14 @@ export class Etudiant {
   @Column({ unique: true, nullable: false })
   email: string;
 
-  @Column({ unique: true, nullable: true, length: 8 })  // TEMPORAIRE: nullable pendant migration
+  @Column({ unique: true, nullable: true, length: 8 }) // TEMPORAIRE: nullable pendant migration
   cin: string;
 
   @Column({ nullable: true })
-  password: string;  // Mot de passe haché (bcrypt)
+  password: string; // Mot de passe haché (bcrypt)
 
   @Column({ default: true })
-  mustChangePassword: boolean;  // Force changement de mot de passe au 1er login
+  mustChangePassword: boolean; // Force changement de mot de passe au 1er login
 
   @Column({ nullable: true })
   dateNaissance: Date;

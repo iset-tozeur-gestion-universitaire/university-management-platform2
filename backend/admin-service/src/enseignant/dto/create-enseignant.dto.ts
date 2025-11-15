@@ -28,7 +28,7 @@ export class CreateEnseignantDto {
 
   @IsString()
   @IsOptional()
-  role?: string;  // 'enseignant' ou 'directeur_departement'
+  role?: string; // 'enseignant' ou 'directeur_departement'
 
   @IsString()
   grade: string;

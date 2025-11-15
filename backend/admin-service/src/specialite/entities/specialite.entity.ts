@@ -11,6 +11,7 @@ import {
 import { Departement } from '../../departement/entities/departement.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Classe } from '../../classe/entities/classe.entity';
+import { Matiere } from '../../matiere/entities/matiere.entity';
 @Entity()
 export class Specialite {
   @PrimaryGeneratedColumn()
@@ -41,4 +42,6 @@ export class Specialite {
 
   @OneToMany(() => Classe, (classe) => classe.specialite)
   classes: Classe[];
+  @OneToMany(() => Matiere, (matiere) => matiere.specialite)
+  matieres: Matiere[];
 }

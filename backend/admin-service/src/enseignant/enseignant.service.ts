@@ -24,10 +24,11 @@ export class EnseignantService {
     const departement = await this.depRepo.findOneBy({ id: dto.departementId });
     if (!departement) throw new NotFoundException('Département introuvable');
 
-    const specialiteEnseignement = await this.specEnsRepo.findOneBy({ 
-      id: dto.specialiteEnseignementId 
+    const specialiteEnseignement = await this.specEnsRepo.findOneBy({
+      id: dto.specialiteEnseignementId,
     });
-    if (!specialiteEnseignement) throw new NotFoundException('Spécialité d\'enseignement introuvable');
+    if (!specialiteEnseignement)
+      throw new NotFoundException("Spécialité d'enseignement introuvable");
 
     // Vérifier qu'il n'y a pas déjà un directeur pour ce département
     if (dto.role === 'directeur_departement') {
@@ -37,10 +38,10 @@ export class EnseignantService {
           role: 'directeur_departement',
         },
       });
-      
+
       if (existingDirecteur) {
         throw new NotFoundException(
-          `Un directeur existe déjà pour ce département (${existingDirecteur.nom} ${existingDirecteur.prenom}). Un seul directeur par département est autorisé.`
+          `Un directeur existe déjà pour ce département (${existingDirecteur.nom} ${existingDirecteur.prenom}). Un seul directeur par département est autorisé.`,
         );
       }
     }
@@ -84,23 +85,26 @@ export class EnseignantService {
     const enseignant = await this.findOne(id);
 
     if (dto.departementId) {
-      const departement = await this.depRepo.findOneBy({ id: dto.departementId });
+      const departement = await this.depRepo.findOneBy({
+        id: dto.departementId,
+      });
       if (!departement) throw new NotFoundException('Département introuvable');
       enseignant.departement = departement;
     }
 
     if (dto.specialiteEnseignementId) {
-      const specialiteEnseignement = await this.specEnsRepo.findOneBy({ 
-        id: dto.specialiteEnseignementId 
+      const specialiteEnseignement = await this.specEnsRepo.findOneBy({
+        id: dto.specialiteEnseignementId,
       });
-      if (!specialiteEnseignement) throw new NotFoundException('Spécialité d\'enseignement introuvable');
+      if (!specialiteEnseignement)
+        throw new NotFoundException("Spécialité d'enseignement introuvable");
       enseignant.specialiteEnseignement = specialiteEnseignement;
     }
 
     // Vérifier si on change le rôle vers directeur_departement
     if (dto.role === 'directeur_departement') {
       const targetDeptId = dto.departementId || enseignant.departement?.id;
-      
+
       // Chercher un directeur existant dans le département cible (sauf l'enseignant actuel)
       const existingDirecteur = await this.enseignantRepo.findOne({
         where: {
@@ -108,10 +112,10 @@ export class EnseignantService {
           role: 'directeur_departement',
         },
       });
-      
+
       if (existingDirecteur && existingDirecteur.id !== id) {
         throw new NotFoundException(
-          `Un directeur existe déjà pour ce département (${existingDirecteur.nom} ${existingDirecteur.prenom}). Un seul directeur par département est autorisé.`
+          `Un directeur existe déjà pour ce département (${existingDirecteur.nom} ${existingDirecteur.prenom}). Un seul directeur par département est autorisé.`,
         );
       }
     }
