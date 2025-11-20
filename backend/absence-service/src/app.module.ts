@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { join } from 'path';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AbsenceModule } from './absence/absence.module';
 import { PassportModule } from '@nestjs/passport';
@@ -8,7 +9,8 @@ import { JwtStrategy } from './auth/jwt.strategy';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Ensure the service picks up its local .env even when started from a different cwd
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: join(__dirname, '..', '.env') }),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default_secret',
