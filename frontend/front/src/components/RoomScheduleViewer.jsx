@@ -176,26 +176,40 @@ const RoomScheduleViewer = () => {
 
       {!loading && schedule && !error && selectedRoom && (
         <div className="schedule-grid-container">
-          <table className="schedule-table">
-            <thead>
-              <tr>
-                <th className="time-column">Horaires</th>
-                {weekDays.map(day => (
-                  <th key={day}>{day}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {timeSlots.map(slot => (
-                <tr key={slot}>
-                  <td className="time-cell">{slot}</td>
-                  {weekDays.map(day => {
-                    const course = scheduleGrid[day]?.[slot];
-                    return (
-                      <td key={`${day}-${slot}`} className="schedule-cell">
-                        {course ? (
-                          <div className="course-card">
-                            <div className="course-title">
+          <div className="schedule-grid">
+            <div className="grid-header">
+              <div className="time-header">Horaires</div>
+              {weekDays.map(day => (
+                <div key={day} className="day-header">{day}</div>
+              ))}
+            </div>
+            
+            {timeSlots.map(timeSlot => (
+              <div key={timeSlot} className="grid-row">
+                <div className="time-slot">{timeSlot}</div>
+                {weekDays.map(day => {
+                  const course = scheduleGrid[day]?.[timeSlot];
+                  return (
+                    <div
+                      key={`${day}-${timeSlot}`}
+                      className="schedule-cell"
+                    >
+                      {course ? (
+                        <div 
+                          className="course-info"
+                          style={{
+                            backgroundColor: '#667eea',
+                            color: 'white',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px'
+                          }}
+                        >
+                          <div className="course-name">
+                            <strong>
                               {(() => {
                                 if (typeof course.matiere === 'object' && course.matiere?.nom) {
                                   return course.matiere.nom;
@@ -204,40 +218,43 @@ const RoomScheduleViewer = () => {
                                 }
                                 return 'Matière';
                               })()}
-                            </div>
-                            <div className="course-details">
-                              {(() => {
-                                const classeText = typeof course.classe === 'object' 
-                                  ? course.classe?.nom 
-                                  : (typeof course.classe === 'string' ? course.classe : null);
-                                return classeText ? (
-                                  <div className="course-info">📚 Classe: {classeText}</div>
-                                ) : null;
-                              })()}
-                              {(() => {
-                                const enseignantText = typeof course.enseignant === 'object'
-                                  ? (course.enseignant?.prenom && course.enseignant?.nom 
-                                      ? `${course.enseignant.prenom} ${course.enseignant.nom}` 
-                                      : null)
-                                  : (typeof course.enseignant === 'string' ? course.enseignant : null);
-                                return enseignantText ? (
-                                  <div className="course-info">👨‍🏫 Prof: {enseignantText}</div>
-                                ) : null;
-                              })()}
-                            </div>
+                            </strong>
                           </div>
-                        ) : (
-                          <div className="empty-slot">
-                            <span className="available-badge">✓ Disponible</span>
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                          {(() => {
+                            const classeText = typeof course.classe === 'object' 
+                              ? course.classe?.nom 
+                              : (typeof course.classe === 'string' ? course.classe : null);
+                            return classeText ? (
+                              <div className="course-class">
+                                🎓 {classeText}
+                              </div>
+                            ) : null;
+                          })()}
+                          {(() => {
+                            const enseignantText = typeof course.enseignant === 'object'
+                              ? (course.enseignant?.prenom && course.enseignant?.nom 
+                                  ? `${course.enseignant.prenom} ${course.enseignant.nom}` 
+                                  : null)
+                              : (typeof course.enseignant === 'string' ? course.enseignant : null);
+                            return enseignantText ? (
+                              <div className="course-teacher">
+                                👨‍🏫 {enseignantText}
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="empty-cell">
+                          <span className="empty-icon">✓</span>
+                          <span>Disponible</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

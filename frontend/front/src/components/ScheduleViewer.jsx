@@ -147,7 +147,8 @@ const ScheduleViewer = () => {
     
     // Générer une couleur basée sur le nom de la matière
     const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4', '#FFEB3B', '#E91E63'];
-    const colorIndex = (course.matiere || '').length % colors.length;
+    const matiereName = typeof course.matiere === 'object' ? (course.matiere?.nom || '') : (course.matiere || '');
+    const colorIndex = matiereName.length % colors.length;
     
     return {
       backgroundColor: colors[colorIndex],
@@ -165,9 +166,15 @@ const ScheduleViewer = () => {
   const handleEditClick = (day, timeSlot, course) => {
     setEditingCell({ day, timeSlot });
     // Trouver les IDs correspondants
-    const teacher = teachers.find(t => `${t.nom} ${t.prenom}` === course.enseignant);
-    const room = rooms.find(r => r.nom === course.salle);
-    const subject = subjects.find(s => s.nom === course.matiere);
+    const enseignantName = typeof course.enseignant === 'object' 
+      ? `${course.enseignant.nom} ${course.enseignant.prenom}` 
+      : course.enseignant;
+    const salleName = typeof course.salle === 'object' ? course.salle.nom : course.salle;
+    const matiereName = typeof course.matiere === 'object' ? course.matiere.nom : course.matiere;
+    
+    const teacher = teachers.find(t => `${t.nom} ${t.prenom}` === enseignantName);
+    const room = rooms.find(r => r.nom === salleName);
+    const subject = subjects.find(s => s.nom === matiereName);
     
     setEditForm({
       emploiId: course.id,
@@ -202,7 +209,12 @@ const ScheduleViewer = () => {
   };
 
   const handleDeleteCourse = async (day, timeSlot, course) => {
-    if (!window.confirm(`Voulez-vous vraiment supprimer ce cours ?\n${course.matiere} - ${course.enseignant}`)) {
+    const matiereName = typeof course.matiere === 'object' ? course.matiere.nom : course.matiere;
+    const enseignantName = typeof course.enseignant === 'object' 
+      ? `${course.enseignant.prenom} ${course.enseignant.nom}` 
+      : course.enseignant;
+    
+    if (!window.confirm(`Voulez-vous vraiment supprimer ce cours ?\n${matiereName} - ${enseignantName}`)) {
       return;
     }
 
@@ -380,13 +392,19 @@ const ScheduleViewer = () => {
                           ) : (
                             <div style={getCourseStyle(grid[day][timeSlot])}>
                               <div className="course-name">
-                                {grid[day][timeSlot].matiere}
+                                {typeof grid[day][timeSlot].matiere === 'object' 
+                                  ? grid[day][timeSlot].matiere?.nom 
+                                  : grid[day][timeSlot].matiere}
                               </div>
                               <div className="course-teacher">
-                                {grid[day][timeSlot].enseignant}
+                                {typeof grid[day][timeSlot].enseignant === 'object'
+                                  ? `${grid[day][timeSlot].enseignant?.prenom} ${grid[day][timeSlot].enseignant?.nom}`
+                                  : grid[day][timeSlot].enseignant}
                               </div>
                               <div className="course-room">
-                                {grid[day][timeSlot].salle}
+                                {typeof grid[day][timeSlot].salle === 'object'
+                                  ? grid[day][timeSlot].salle?.nom
+                                  : grid[day][timeSlot].salle}
                               </div>
                             </div>
                           )

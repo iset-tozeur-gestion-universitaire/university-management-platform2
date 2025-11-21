@@ -116,14 +116,33 @@ const ScheduleBuilder = () => {
           courses.forEach(course => {
             const timeSlot = `${course.heureDebut}-${course.heureFin}`;
             if (newSchedule[jour] && timeSlots.includes(timeSlot)) {
+              // Gérer les données qui peuvent être des objets ou des strings
+              const matiereName = typeof course.matiere === 'object' ? course.matiere.nom : course.matiere;
+              const enseignantData = typeof course.enseignant === 'object' ? course.enseignant : null;
+              const salleName = typeof course.salle === 'object' ? course.salle.nom : course.salle;
+              
               // Find matching items from loaded data
-              const subject = subjects.find(s => s.nom === course.matiere || s.id === course.matiereId);
-              const teacherName = course.enseignant.split(' ');
-              const teacher = teachers.find(t => 
-                `${t.nom} ${t.prenom}` === course.enseignant || 
-                t.id === course.enseignantId
-              );
-              const room = rooms.find(r => r.nom === course.salle || r.id === course.salleId);
+              const subject = subjects.find(s => s.nom === matiereName || s.id === course.matiereId);
+              
+              let teacher;
+              if (enseignantData && enseignantData.nom && enseignantData.prenom) {
+                // Si c'est un objet avec nom et prenom
+                teacher = teachers.find(t => 
+                  t.nom === enseignantData.nom && t.prenom === enseignantData.prenom ||
+                  t.id === course.enseignantId
+                );
+              } else if (typeof course.enseignant === 'string') {
+                // Si c'est une string "Nom Prenom"
+                teacher = teachers.find(t => 
+                  `${t.nom} ${t.prenom}` === course.enseignant || 
+                  t.id === course.enseignantId
+                );
+              } else {
+                // Fallback: chercher par ID
+                teacher = teachers.find(t => t.id === course.enseignantId);
+              }
+              
+              const room = rooms.find(r => r.nom === salleName || r.id === course.salleId);
               
               console.log(`Matching for ${jour} ${timeSlot}:`, { subject, teacher, room, course });
               
@@ -358,13 +377,15 @@ const ScheduleBuilder = () => {
     if (!course) return {};
     
     return {
-      backgroundColor: course.subject.couleur || '#ccc',
+      backgroundColor: course.subject.couleur || '#667eea',
       color: 'white',
-      padding: '5px',
-      borderRadius: '4px',
-      fontSize: '0.8rem',
-      height: '100%',
-      position: 'relative'
+      padding: '8px',
+      borderRadius: '6px',
+      fontSize: '0.75rem',
+      minHeight: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '6px'
     };
   };
 

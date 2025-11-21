@@ -188,9 +188,12 @@
 
 .schedule-cell {
   border-right: 1px solid #dee2e6;
-  padding: 0.5rem;
+  padding: 4px;
   position: relative;
   transition: background-color 0.2s;
+  min-height: 120px;
+  display: flex;
+  align-items: stretch;
 }
 
 .schedule-cell:hover {
@@ -198,12 +201,12 @@
 }
 
 .empty-cell {
-  height: 100%;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #adb5bd;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   border: 2px dashed #dee2e6;
   border-radius: 4px;
   transition: all 0.2s;
@@ -217,12 +220,14 @@
 
 /* Course Card */
 .course-card {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 6px;
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   transition: transform 0.2s;
+  overflow: hidden;
 }
 
 .course-card:hover {
@@ -233,55 +238,68 @@
 .course-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 2px;
 }
 
 .course-name {
   font-weight: 600;
-  font-size: 0.85rem;
-  line-height: 1.2;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  flex: 1;
+  word-wrap: break-word;
 }
 
 .remove-btn {
   background: rgba(255,255,255,0.2);
   border: none;
   color: white;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 1rem;
+  line-height: 1;
   transition: background-color 0.2s;
+  flex-shrink: 0;
 }
 
 .remove-btn:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.4);
+  transform: scale(1.1);
 }
 
 .course-details {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 4px;
+  flex: 1;
 }
 
 .teacher-select,
 .room-select {
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.95);
   border: 1px solid rgba(255,255,255,0.5);
-  border-radius: 3px;
-  padding: 0.2rem;
+  border-radius: 4px;
+  padding: 4px 6px;
   font-size: 0.7rem;
   color: #333;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .teacher-select:focus,
 .room-select:focus {
   outline: none;
-  border-color: rgba(255,255,255,0.8);
+  border-color: rgba(255,255,255,1);
   background: white;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
 }
 
 /* Loading States */

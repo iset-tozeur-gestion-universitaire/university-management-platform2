@@ -21,9 +21,27 @@ const LoginPage = () => {
       console.log('Login result:', result);
 
       if (result.success) {
-        // Redirect to director dashboard by default
-        console.log('Login successful, redirecting to director-dashboard');
-        navigate('/director-dashboard');
+        // Redirect based on user role
+        const userRole = result.user?.role;
+        console.log('Login successful, user role:', userRole);
+        
+        switch (userRole) {
+          case 'etudiant':
+            navigate('/student-dashboard');
+            break;
+          case 'enseignant':
+            navigate('/teacher-dashboard');
+            break;
+          case 'directeur_departement':
+            navigate('/director-dashboard');
+            break;
+          case 'administratif':
+            navigate('/admin-dashboard');
+            break;
+          default:
+            console.warn('Unknown role:', userRole, 'defaulting to director-dashboard');
+            navigate('/director-dashboard');
+        }
       } else if (result.mustChangePassword || result.message === 'Changement de mot de passe requis') {
         console.log('Password change required');
         navigate('/change-password', { state: { email } });
