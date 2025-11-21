@@ -1,8 +1,216 @@
 /* Schedule Viewer Styles */
-.schedule-viewer {
+.schedule-viewer,
+.schedule-viewer-container {
   min-height: 100vh;
   background-color: #f5f5f5;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 2rem;
+}
+
+.schedule-viewer-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.schedule-viewer-header h1 {
+  color: #1e5ba8;
+  margin-bottom: 0.5rem;
+}
+
+.schedule-viewer-header p {
+  color: #666;
+}
+
+.schedule-controls {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-weight: 600;
+  color: #333;
+}
+
+.control-select {
+  padding: 0.75rem 1rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  min-width: 250px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.control-select:hover {
+  border-color: #1e5ba8;
+}
+
+.control-select:focus {
+  outline: none;
+  border-color: #5eb3b7;
+}
+
+.teacher-info-card {
+  background: linear-gradient(135deg, #1e5ba8 0%, #5eb3b7 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.teacher-info-card h3 {
+  margin: 0 0 1rem 0;
+}
+
+.teacher-info-card p {
+  margin: 0.5rem 0;
+}
+
+.schedule-grid-container {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  overflow-x: auto;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.schedule-table thead th {
+  background: linear-gradient(135deg, #1e5ba8 0%, #5eb3b7 100%);
+  color: white;
+  padding: 1rem;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #ddd;
+}
+
+.time-column {
+  width: 120px;
+}
+
+.time-cell {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  padding: 1rem;
+  border: 1px solid #ddd;
+}
+
+.schedule-cell {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  vertical-align: top;
+  height: 100px;
+}
+
+.course-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 8px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.course-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.course-details {
+  font-size: 0.85rem;
+  opacity: 0.95;
+}
+
+.course-info {
+  margin: 0.15rem 0;
+}
+
+.empty-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.available-badge {
+  background: #4CAF50;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.loading,
+.error-message,
+.no-selection {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.error-message {
+  color: #d32f2f;
+  background: #ffebee;
+  border-radius: 8px;
+  margin: 2rem auto;
+  max-width: 600px;
+}
+
+.no-selection {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .schedule-viewer-container {
+    padding: 1rem;
+  }
+
+  .schedule-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .control-select {
+    min-width: 100%;
+  }
+
+  .schedule-table {
+    font-size: 0.85rem;
+  }
+
+  .course-title {
+    font-size: 0.85rem;
+  }
+
+  .course-info {
+    font-size: 0.75rem;
+  }
 }
 
 /* Header */

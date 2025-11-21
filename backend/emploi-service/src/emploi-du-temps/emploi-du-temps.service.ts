@@ -155,10 +155,10 @@ export class EmploiDuTempsService {
         classeId: emploi.classeId,
         heureDebut: emploi.heureDebut.slice(0, 5),
         heureFin: emploi.heureFin.slice(0, 5),
-        matiere: matiere.nom,
-        enseignant: `${enseignant.nom} ${enseignant.prenom}`,
-        salle: salle.nom,
-        classe: classe.nom
+        matiere: matiere,
+        enseignant: enseignant,
+        salle: salle,
+        classe: classe
       });
     }
     return grouped;

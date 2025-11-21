@@ -171,20 +171,54 @@ const MySchedule = () => {
                         style={getCourseStyle(schedule[day][timeSlot])}
                       >
                         <div className="course-name">
-                          <strong>{schedule[day][timeSlot].matiere}</strong>
+                          <strong>
+                            {(() => {
+                              const course = schedule[day][timeSlot];
+                              if (typeof course.matiere === 'object' && course.matiere?.nom) {
+                                return course.matiere.nom;
+                              } else if (typeof course.matiere === 'string') {
+                                return course.matiere;
+                              }
+                              return 'Matière';
+                            })()}
+                          </strong>
                         </div>
                         {user.role === 'etudiant' && (
                           <div className="course-teacher">
-                            👨‍🏫 {schedule[day][timeSlot].enseignant}
+                            👨‍🏫 {(() => {
+                              const course = schedule[day][timeSlot];
+                              if (typeof course.enseignant === 'object') {
+                                return course.enseignant?.prenom && course.enseignant?.nom
+                                  ? `${course.enseignant.prenom} ${course.enseignant.nom}`
+                                  : 'Enseignant';
+                              }
+                              return course.enseignant || 'Enseignant';
+                            })()}
                           </div>
                         )}
                         {(user.role === 'enseignant' || user.role === 'directeur_departement') && (
                           <div className="course-class">
-                            🎓 {schedule[day][timeSlot].classe}
+                            🎓 {(() => {
+                              const course = schedule[day][timeSlot];
+                              if (typeof course.classe === 'object' && course.classe?.nom) {
+                                return course.classe.nom;
+                              } else if (typeof course.classe === 'string') {
+                                return course.classe;
+                              }
+                              return 'Classe';
+                            })()}
                           </div>
                         )}
                         <div className="course-room">
-                          🏢 {schedule[day][timeSlot].salle}
+                          🏢 {(() => {
+                            const course = schedule[day][timeSlot];
+                            if (typeof course.salle === 'object' && course.salle?.nom) {
+                              return course.salle.nom;
+                            } else if (typeof course.salle === 'string') {
+                              return course.salle;
+                            }
+                            return 'Salle';
+                          })()}
                         </div>
                       </div>
                     ) : (

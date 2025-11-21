@@ -27,7 +27,7 @@ export class AdminService {
   async getEtudiant(id: number) {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.adminServiceUrl}/etudiant/${id}`)
+        this.httpService.get(`${this.adminServiceUrl}/etudiants/${id}`)
       );
       return response.data;
     } catch (error) {

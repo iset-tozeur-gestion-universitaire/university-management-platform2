@@ -38,13 +38,15 @@ export class EtudiantService {
   }
 
   async findAll() {
-    return this.etudiantRepo.find({ relations: ['classe'] });
+    return this.etudiantRepo.find({ 
+      relations: ['classe', 'classe.specialite', 'classe.specialite.departement'] 
+    });
   }
 
   async findOne(id: number) {
     const etudiant = await this.etudiantRepo.findOne({
       where: { id },
-      relations: ['classe'],
+      relations: ['classe', 'classe.specialite', 'classe.specialite.departement'],
     });
     if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
     return etudiant;
