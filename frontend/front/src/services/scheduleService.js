@@ -94,9 +94,10 @@ export const scheduleService = {
   // Sauvegarder plusieurs emplois du temps (plusieurs créneaux)
   async saveSchedule(scheduleData) {
     try {
-      // Créer chaque emploi du temps individuellement
-      const promises = scheduleData.courses.map(course => 
-        this.createEmploi({
+      // Créer chaque emploi du temps séquentiellement pour détecter les conflits
+      const results = [];
+      for (const course of scheduleData.courses) {
+        const result = await this.createEmploi({
           classeId: scheduleData.classId,
           enseignantId: course.teacherId,
           salleId: course.roomId,
@@ -105,10 +106,10 @@ export const scheduleService = {
           heureDebut: course.heureDebut,
           heureFin: course.heureFin,
           semestre: scheduleData.semestre || 1
-        })
-      );
+        });
+        results.push(result);
+      }
       
-      const results = await Promise.all(promises);
       return { success: true, data: results };
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);

@@ -27,6 +27,7 @@ export class EmploiDuTempsService {
 
     const conflict = await this.emploiRepo.createQueryBuilder('emploi')
       .where('emploi.date = :date', { date })
+      .andWhere('emploi.semestre = :semestre', { semestre })
       .andWhere('(emploi.salleId = :salleId OR emploi.enseignantId = :enseignantId OR emploi.classeId = :classeId)', {
         salleId, enseignantId, classeId,
       })
@@ -36,7 +37,23 @@ export class EmploiDuTempsService {
       .getOne();
 
     if (conflict) {
-      throw new BadRequestException('Conflit détecté : salle, enseignant ou classe déjà occupé.');
+      let conflictType = '';
+      let timeInfo = `de ${conflict.heureDebut.slice(0, 5)} à ${conflict.heureFin.slice(0, 5)}`;
+      if (conflict.salleId === salleId && conflict.enseignantId === enseignantId) {
+        const salle = await this.adminService.getSalle(salleId);
+        const enseignant = await this.adminService.getEnseignant(enseignantId);
+        conflictType = `la salle '${salle.nom}' et l'enseignant '${enseignant.nom} ${enseignant.prenom}'`;
+      } else if (conflict.salleId === salleId) {
+        const salle = await this.adminService.getSalle(salleId);
+        conflictType = `la salle '${salle.nom}'`;
+      } else if (conflict.enseignantId === enseignantId) {
+        const enseignant = await this.adminService.getEnseignant(enseignantId);
+        conflictType = `l'enseignant '${enseignant.nom} ${enseignant.prenom}'`;
+      } else if (conflict.classeId === classeId) {
+        const classe = await this.adminService.getClasse(classeId);
+        conflictType = `la classe '${classe.nom}'`;
+      }
+      throw new BadRequestException(`Conflit détecté : ${conflictType} est/sont déjà occupé(s) ${timeInfo}.`);
     }
 
     const emploi = this.emploiRepo.create(dto);
@@ -89,6 +106,11 @@ export class EmploiDuTempsService {
       const classe = await this.adminService.getClasse(emploi.classeId);
 
       grouped[capitalizedJour].push({
+        id: emploi.id,
+        matiereId: emploi.matiereId,
+        enseignantId: emploi.enseignantId,
+        salleId: emploi.salleId,
+        classeId: emploi.classeId,
         heureDebut: emploi.heureDebut.slice(0, 5),
         heureFin: emploi.heureFin.slice(0, 5),
         matiere: matiere.nom,

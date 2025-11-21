@@ -58,13 +58,63 @@ const ScheduleBuilder = () => {
       setSubjects(subjectsData);
       setRooms(roomsData);
       
-      // Initialiser l'emploi du temps vide
-      initializeSchedule();
-      
       setLoading(false);
     } catch (err) {
       console.error('Erreur lors du chargement des données:', err);
       setError('Erreur lors du chargement des données: ' + (err.message || 'Service indisponible'));
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedClass) {
+      loadExistingSchedule();
+    } else {
+      setSchedule({});
+    }
+  }, [selectedClass, semestre]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadExistingSchedule = async () => {
+    if (!selectedClass) return;
+    
+    try {
+      setLoading(true);
+      const data = await scheduleService.getScheduleByClass(parseInt(selectedClass), semestre);
+      
+      const newSchedule = {};
+      weekDays.forEach(day => {
+        newSchedule[day] = {};
+        timeSlots.forEach(slot => {
+          newSchedule[day][slot] = null;
+        });
+      });
+      
+      Object.entries(data).forEach(([jour, courses]) => {
+        courses.forEach(course => {
+          const timeSlot = `${course.heureDebut}-${course.heureFin}`;
+          if (newSchedule[jour] && newSchedule[jour][timeSlot] === null) {
+            const subject = subjects.find(s => s.id === course.matiereId) || { id: course.matiereId, nom: course.matiere, couleur: '#ccc' };
+            const teacher = teachers.find(t => t.id === course.enseignantId) || { id: course.enseignantId, nom: course.enseignant.split(' ')[0] || '', prenom: course.enseignant.split(' ')[1] || '' };
+            const room = rooms.find(r => r.id === course.salleId) || { id: course.salleId, nom: course.salle };
+            
+            newSchedule[jour][timeSlot] = {
+              id: course.id,
+              subject,
+              teacher,
+              room,
+              day: jour,
+              timeSlot,
+              class: selectedClass
+            };
+          }
+        });
+      });
+      
+      setSchedule(newSchedule);
+      setLoading(false);
+    } catch (err) {
+      console.error('Erreur chargement emploi existant:', err);
+      initializeSchedule();
       setLoading(false);
     }
   };
