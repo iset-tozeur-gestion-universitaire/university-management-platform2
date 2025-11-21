@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { scheduleService } from '../services/scheduleService';
 import './ScheduleViewer.css';
@@ -7,6 +7,7 @@ import './ScheduleViewer.css';
 const ScheduleViewer = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
@@ -49,9 +50,17 @@ const ScheduleViewer = () => {
       const classesData = await scheduleService.getClasses();
       setClasses(classesData);
       
-      // Sélectionner la première classe par défaut
-      if (classesData.length > 0) {
+      const classIdParam = searchParams.get('classId');
+      const semestreParam = searchParams.get('semestre');
+      
+      if (classIdParam) {
+        setSelectedClass(classIdParam);
+      } else if (classesData.length > 0) {
         setSelectedClass(classesData[0].id.toString());
+      }
+      
+      if (semestreParam) {
+        setSemestre(parseInt(semestreParam));
       }
       
       setLoading(false);

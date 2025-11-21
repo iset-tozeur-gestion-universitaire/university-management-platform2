@@ -193,7 +193,8 @@ const ScheduleBuilder = () => {
             const today = new Date();
             const currentDay = today.getDay(); // 0 = dimanche, 1 = lundi, etc.
             const targetDay = dayToDate[day];
-            const diff = targetDay - currentDay;
+            let diff = targetDay - currentDay;
+            if (diff < 0) diff += 7;
             const targetDate = new Date(today);
             targetDate.setDate(today.getDate() + diff);
             
@@ -224,8 +225,8 @@ const ScheduleBuilder = () => {
       await scheduleService.saveSchedule(scheduleData);
       alert('Emploi du temps sauvegardé avec succès !');
       
-      // Rediriger vers le dashboard directeur
-      navigate('/director-dashboard');
+      // Rediriger vers le visualiseur d'emploi du temps pour la classe créée
+      navigate(`/schedule-viewer?classId=${selectedClass}&semestre=${semestre}`);
       
     } catch (err) {
       console.error('Erreur lors de la sauvegarde:', err);

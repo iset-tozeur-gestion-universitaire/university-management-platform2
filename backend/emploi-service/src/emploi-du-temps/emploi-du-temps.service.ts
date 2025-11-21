@@ -80,16 +80,17 @@ export class EmploiDuTempsService {
     const grouped = {};
     for (const emploi of emplois) {
       const jour = new Date(emploi.date).toLocaleDateString('fr-FR', { weekday: 'long' });
-      if (!grouped[jour]) grouped[jour] = [];
+      const capitalizedJour = jour.charAt(0).toUpperCase() + jour.slice(1);
+      if (!grouped[capitalizedJour]) grouped[capitalizedJour] = [];
 
       const matiere = await this.adminService.getMatiere(emploi.matiereId);
       const enseignant = await this.adminService.getEnseignant(emploi.enseignantId);
       const salle = await this.adminService.getSalle(emploi.salleId);
       const classe = await this.adminService.getClasse(emploi.classeId);
 
-      grouped[jour].push({
-        heureDebut: emploi.heureDebut,
-        heureFin: emploi.heureFin,
+      grouped[capitalizedJour].push({
+        heureDebut: emploi.heureDebut.slice(0, 5),
+        heureFin: emploi.heureFin.slice(0, 5),
         matiere: matiere.nom,
         enseignant: `${enseignant.nom} ${enseignant.prenom}`,
         salle: salle.nom,
