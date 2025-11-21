@@ -190,7 +190,7 @@ const LandingPage = () => {
                     className={`dropdown-menu ${activeDropdown === index ? "active" : ""}`}
                   >
                     {item.submenu.map((subItem, subIndex) => (
-                      <a key={subIndex} href="#" className="dropdown-item">
+                      <a key={subIndex} href="javascript:void(0);" className="dropdown-item">
                         {subItem}
                       </a>
                     ))}

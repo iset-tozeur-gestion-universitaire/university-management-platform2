@@ -153,7 +153,8 @@ const ScheduleBuilder = () => {
       timeSlot,
       teacher: null,
       room: null,
-      class: selectedClass
+      class: selectedClass,
+      isNew: true
     };
 
     // Vérifier les conflits
@@ -236,7 +237,7 @@ const ScheduleBuilder = () => {
 
       Object.entries(schedule).forEach(([day, slots]) => {
         Object.entries(slots).forEach(([timeSlot, course]) => {
-          if (course && course.teacher && course.room) {
+          if (course && course.teacher && course.room && course.isNew) {
             const [heureDebut, heureFin] = timeSlot.split('-');
             
             // Créer une date pour le jour de la semaine

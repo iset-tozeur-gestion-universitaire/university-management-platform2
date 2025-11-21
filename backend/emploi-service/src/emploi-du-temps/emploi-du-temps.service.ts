@@ -25,34 +25,63 @@ export class EmploiDuTempsService {
     await this.adminService.getClasse(classeId);
     if (matiereId) await this.adminService.getMatiere(matiereId);
 
-    const conflict = await this.emploiRepo.createQueryBuilder('emploi')
+    // Vérifier les conflits pour la salle
+    const salleConflict = await this.emploiRepo.createQueryBuilder('emploi')
       .where('emploi.date = :date', { date })
       .andWhere('emploi.semestre = :semestre', { semestre })
-      .andWhere('(emploi.salleId = :salleId OR emploi.enseignantId = :enseignantId OR emploi.classeId = :classeId)', {
-        salleId, enseignantId, classeId,
-      })
+      .andWhere('emploi.salleId = :salleId', { salleId })
       .andWhere('emploi.heureDebut < :heureFin AND emploi.heureFin > :heureDebut', {
         heureDebut, heureFin,
       })
       .getOne();
 
-    if (conflict) {
-      let conflictType = '';
-      let timeInfo = `de ${conflict.heureDebut.slice(0, 5)} à ${conflict.heureFin.slice(0, 5)}`;
-      if (conflict.salleId === salleId && conflict.enseignantId === enseignantId) {
+    // Vérifier les conflits pour l'enseignant
+    const enseignantConflict = await this.emploiRepo.createQueryBuilder('emploi')
+      .where('emploi.date = :date', { date })
+      .andWhere('emploi.semestre = :semestre', { semestre })
+      .andWhere('emploi.enseignantId = :enseignantId', { enseignantId })
+      .andWhere('emploi.heureDebut < :heureFin AND emploi.heureFin > :heureDebut', {
+        heureDebut, heureFin,
+      })
+      .getOne();
+
+    // Vérifier les conflits pour la classe
+    const classeConflict = await this.emploiRepo.createQueryBuilder('emploi')
+      .where('emploi.date = :date', { date })
+      .andWhere('emploi.semestre = :semestre', { semestre })
+      .andWhere('emploi.classeId = :classeId', { classeId })
+      .andWhere('emploi.heureDebut < :heureFin AND emploi.heureFin > :heureDebut', {
+        heureDebut, heureFin,
+      })
+      .getOne();
+
+    if (salleConflict || enseignantConflict || classeConflict) {
+      let conflictParts: string[] = [];
+      let timeInfo = '';
+
+      if (salleConflict) {
         const salle = await this.adminService.getSalle(salleId);
-        const enseignant = await this.adminService.getEnseignant(enseignantId);
-        conflictType = `la salle '${salle.nom}' et l'enseignant '${enseignant.nom} ${enseignant.prenom}'`;
-      } else if (conflict.salleId === salleId) {
-        const salle = await this.adminService.getSalle(salleId);
-        conflictType = `la salle '${salle.nom}'`;
-      } else if (conflict.enseignantId === enseignantId) {
-        const enseignant = await this.adminService.getEnseignant(enseignantId);
-        conflictType = `l'enseignant '${enseignant.nom} ${enseignant.prenom}'`;
-      } else if (conflict.classeId === classeId) {
-        const classe = await this.adminService.getClasse(classeId);
-        conflictType = `la classe '${classe.nom}'`;
+        conflictParts.push(`la salle '${salle.nom}'`);
+        timeInfo = `de ${salleConflict.heureDebut.slice(0, 5)} à ${salleConflict.heureFin.slice(0, 5)}`;
       }
+
+      if (enseignantConflict) {
+        const enseignant = await this.adminService.getEnseignant(enseignantId);
+        conflictParts.push(`l'enseignant '${enseignant.nom} ${enseignant.prenom}'`);
+        if (!timeInfo) {
+          timeInfo = `de ${enseignantConflict.heureDebut.slice(0, 5)} à ${enseignantConflict.heureFin.slice(0, 5)}`;
+        }
+      }
+
+      if (classeConflict) {
+        const classe = await this.adminService.getClasse(classeId);
+        conflictParts.push(`la classe '${classe.nom}'`);
+        if (!timeInfo) {
+          timeInfo = `de ${classeConflict.heureDebut.slice(0, 5)} à ${classeConflict.heureFin.slice(0, 5)}`;
+        }
+      }
+
+      const conflictType = conflictParts.join(' et ');
       throw new BadRequestException(`Conflit détecté : ${conflictType} est/sont déjà occupé(s) ${timeInfo}.`);
     }
 

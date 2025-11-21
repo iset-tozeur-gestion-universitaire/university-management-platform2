@@ -8,7 +8,6 @@ import {
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LandingPage from "./components/LandingPage";
 import LoginPage from "./components/LoginPage";
-import Dashboard from "./components/Dashboard";
 import StudentDashboard from "./components/StudentDashboard";
 import TeacherDashboard from "./components/TeacherDashboard";
 import DirectorDashboard from "./components/DirectorDashboard";
@@ -48,11 +47,11 @@ const ProtectedRoute = ({ children, requiredRole, allowedRoles }) => {
   }
 
   if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/director-dashboard" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/director-dashboard" replace />;
   }
 
   return children;
@@ -72,14 +71,6 @@ function App() {
             <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
             <Route path="/auth/confirm-email" element={<ConfirmEmailPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
             <Route
               path="/student-dashboard"
               element={

@@ -44,4 +44,6 @@ const handleAuthError = (error) => {
 authApi.interceptors.response.use((response) => response, handleAuthError);
 adminApi.interceptors.response.use((response) => response, handleAuthError);
 
-export default { authApi, adminApi };
+const api = { authApi, adminApi };
+
+export default api;
