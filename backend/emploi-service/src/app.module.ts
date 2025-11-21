@@ -12,7 +12,7 @@ import { AdminModule } from './admin/admin.module';
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || '1234',
+      password: process.env.DB_PASSWORD || '0000',
       database: process.env.DB_NAME || 'university_db',
       autoLoadEntities: true,
       synchronize: true,

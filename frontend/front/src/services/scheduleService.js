@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { adminApi } from '../config/api';
 
 const EMPLOI_API_URL = process.env.REACT_APP_EMPLOI_API_URL || 'http://localhost:3010';
 
@@ -35,72 +36,43 @@ emploiAPI.interceptors.response.use(
 );
 
 export const scheduleService = {
-  // Récupérer toutes les classes
+  // Récupérer toutes les classes depuis admin-service
   async getClasses() {
     try {
-      const response = await emploiAPI.get('/admin/classes');
+      const response = await adminApi.get('/classe');
       return response.data;
     } catch (error) {
-      console.warn('🔄 Service backend indisponible, utilisation des données mock:', error.message);
-      return {
-        success: true,
-        data: [
-          { id: 1, nom: "L1 Informatique", niveau: "L1", specialite: "Informatique" },
-          { id: 2, nom: "L2 Informatique", niveau: "L2", specialite: "Informatique" },
-          { id: 3, nom: "L3 Informatique", niveau: "L3", specialite: "Informatique" },
-          { id: 4, nom: "Master GL", niveau: "Master", specialite: "Génie Logiciel" }
-        ]
-      };
+      console.error('Erreur lors du chargement des classes:', error);
+      throw error;
     }
   },
 
-  // Récupérer tous les enseignants
+  // Récupérer tous les enseignants depuis admin-service
   async getTeachers() {
     try {
-      const response = await emploiAPI.get('/admin/teachers');
+      const response = await adminApi.get('/enseignant');
       return response.data;
     } catch (error) {
-      console.warn('🔄 Service backend indisponible, utilisation des données mock:', error.message);
-      return {
-        success: true,
-        data: [
-          { id: 1, nom: "Martin", prenom: "Jean", email: "j.martin@univ.tn", specialites: ["Mathématiques"] },
-          { id: 2, nom: "Dubois", prenom: "Marie", email: "m.dubois@univ.tn", specialites: ["Algorithmique", "Structures de données"] },
-          { id: 3, nom: "Garcia", prenom: "Carlos", email: "c.garcia@univ.tn", specialites: ["Base de données"] },
-          { id: 4, nom: "Chen", prenom: "Li", email: "l.chen@univ.tn", specialites: ["Réseaux"] },
-          { id: 5, nom: "Ahmed", prenom: "Fatima", email: "f.ahmed@univ.tn", specialites: ["Programmation Web"] }
-        ]
-      };
+      console.error('Erreur lors du chargement des enseignants:', error);
+      throw error;
     }
   },
 
-  // Récupérer toutes les matières
+  // Récupérer toutes les matières depuis admin-service
   async getSubjects() {
     try {
-      const response = await emploiAPI.get('/admin/subjects');
+      const response = await adminApi.get('/matiere');
       return response.data;
     } catch (error) {
-      console.warn('🔄 Service backend indisponible, utilisation des données mock:', error.message);
-      return {
-        success: true,
-        data: [
-          { id: 1, nom: "Mathématiques", code: "MATH101", couleur: "#FF6B6B" },
-          { id: 2, nom: "Algorithmique", code: "ALGO101", couleur: "#4ECDC4" },
-          { id: 3, nom: "Base de données", code: "BDD101", couleur: "#45B7D1" },
-          { id: 4, nom: "Réseaux", code: "NET101", couleur: "#96CEB4" },
-          { id: 5, nom: "Programmation Web", code: "WEB101", couleur: "#FFEAA7" },
-          { id: 6, nom: "Systèmes", code: "SYS101", couleur: "#DDA0DD" },
-          { id: 7, nom: "POO", code: "POO201", couleur: "#98D8C8" },
-          { id: 8, nom: "IA", code: "IA301", couleur: "#F7DC6F" }
-        ]
-      };
+      console.error('Erreur lors du chargement des matières:', error);
+      throw error;
     }
   },
 
-  // Récupérer toutes les salles
+  // Récupérer toutes les salles depuis admin-service
   async getRooms() {
     try {
-      const response = await emploiAPI.get('/admin/rooms');
+      const response = await adminApi.get('/salles');
       return response.data;
     } catch (error) {
       console.error('Erreur lors du chargement des salles:', error);
@@ -108,16 +80,36 @@ export const scheduleService = {
     }
   },
 
-  // Sauvegarder un emploi du temps
+  // Créer un emploi du temps (un seul créneau)
+  async createEmploi(emploiData) {
+    try {
+      const response = await emploiAPI.post('/emplois-du-temps', emploiData);
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'emploi:', error);
+      throw error;
+    }
+  },
+
+  // Sauvegarder plusieurs emplois du temps (plusieurs créneaux)
   async saveSchedule(scheduleData) {
     try {
-      const response = await emploiAPI.post('/emploi-du-temps', {
-        classId: scheduleData.classId,
-        courses: scheduleData.courses,
-        semester: scheduleData.semester || '2024-2025',
-        validated: false
-      });
-      return response.data;
+      // Créer chaque emploi du temps individuellement
+      const promises = scheduleData.courses.map(course => 
+        this.createEmploi({
+          classeId: scheduleData.classId,
+          enseignantId: course.teacherId,
+          salleId: course.roomId,
+          matiereId: course.subjectId,
+          date: course.date,
+          heureDebut: course.heureDebut,
+          heureFin: course.heureFin,
+          semestre: scheduleData.semestre || 1
+        })
+      );
+      
+      const results = await Promise.all(promises);
+      return { success: true, data: results };
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
       throw error;
@@ -125,9 +117,9 @@ export const scheduleService = {
   },
 
   // Récupérer l'emploi du temps d'une classe
-  async getScheduleByClass(classId) {
+  async getScheduleByClass(classId, semestre = 1) {
     try {
-      const response = await emploiAPI.get(`/emploi-du-temps/class/${classId}`);
+      const response = await emploiAPI.get(`/emplois-du-temps/classe/${classId}/schedule/${semestre}`);
       return response.data;
     } catch (error) {
       console.error('Erreur lors du chargement de l\'emploi du temps:', error);
@@ -135,26 +127,24 @@ export const scheduleService = {
     }
   },
 
-  // Valider un emploi du temps
-  async validateSchedule(scheduleId) {
+  // Récupérer l'emploi du temps d'un enseignant
+  async getScheduleByTeacher(enseignantId, semestre = 1) {
     try {
-      const response = await emploiAPI.patch(`/emploi-du-temps/${scheduleId}/validate`);
+      const response = await emploiAPI.get(`/emplois-du-temps/enseignant/${enseignantId}/schedule/${semestre}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la validation:', error);
+      console.error('Erreur lors du chargement de l\'emploi du temps:', error);
       throw error;
     }
   },
 
-  // Vérifier les conflits d'emploi du temps
-  async checkConflicts(courses) {
+  // Récupérer l'emploi du temps d'une salle
+  async getScheduleBySalle(salleId, semestre = 1) {
     try {
-      const response = await emploiAPI.post('/emploi-du-temps/check-conflicts', {
-        courses
-      });
+      const response = await emploiAPI.get(`/emplois-du-temps/salle/${salleId}/schedule/${semestre}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la vérification des conflits:', error);
+      console.error('Erreur lors du chargement de l\'emploi du temps:', error);
       throw error;
     }
   },
@@ -162,74 +152,10 @@ export const scheduleService = {
   // Récupérer tous les emplois du temps
   async getAllSchedules() {
     try {
-      const response = await emploiAPI.get('/emploi-du-temps');
+      const response = await emploiAPI.get('/emplois-du-temps');
       return response.data;
     } catch (error) {
-      console.warn('🔄 Service backend indisponible, utilisation des données mock:', error.message);
-      return {
-        success: true,
-        data: [
-          {
-            id: 1,
-            title: "Emploi L1 Info - Semestre 1",
-            classe: "L1 Informatique",
-            semester: "S1",
-            year: "2024-2025",
-            status: "validated",
-            createdAt: "2024-01-15",
-            createdBy: "Dr. Ahmed Directeur",
-            scheduleData: {
-              "lundi-08:00": { subject: "Mathématiques", teacher: "Prof. Martin", room: "A101" },
-              "lundi-10:00": { subject: "Algorithmique", teacher: "Dr. Dubois", room: "B205" },
-              "mardi-08:00": { subject: "Base de données", teacher: "Prof. Garcia", room: "C301" },
-              "mardi-14:00": { subject: "Réseaux", teacher: "Dr. Chen", room: "D102" },
-              "mercredi-10:00": { subject: "Programmation Web", teacher: "Prof. Ahmed", room: "B203" },
-              "jeudi-08:00": { subject: "Systèmes", teacher: "Dr. Kumar", room: "A205" },
-              "vendredi-14:00": { subject: "Projet", teacher: "Prof. Martin", room: "Lab1" }
-            }
-          },
-          {
-            id: 2,
-            title: "Emploi L2 Info - Semestre 1",
-            classe: "L2 Informatique",
-            semester: "S1", 
-            year: "2024-2025",
-            status: "draft",
-            createdAt: "2024-01-20",
-            createdBy: "Dr. Ahmed Directeur",
-            scheduleData: {
-              "lundi-08:00": { subject: "Structures de données", teacher: "Dr. Dubois", room: "A102" },
-              "lundi-14:00": { subject: "POO", teacher: "Prof. Smith", room: "B201" },
-              "mardi-10:00": { subject: "Compilation", teacher: "Dr. Wang", room: "C302" },
-              "mercredi-08:00": { subject: "IA", teacher: "Prof. Johnson", room: "D201" },
-              "jeudi-14:00": { subject: "Interface Homme-Machine", teacher: "Dr. Lee", room: "B204" }
-            }
-          }
-        ]
-      };
-    }
-  },
-
-  // Supprimer un emploi du temps
-  async deleteSchedule(scheduleId) {
-    try {
-      const response = await emploiAPI.delete(`/emploi-du-temps/${scheduleId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-      throw error;
-    }
-  },
-
-  // Dupliquer un emploi du temps
-  async duplicateSchedule(scheduleId, newClassId) {
-    try {
-      const response = await emploiAPI.post(`/emploi-du-temps/${scheduleId}/duplicate`, {
-        newClassId
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la duplication:', error);
+      console.error('Erreur lors du chargement des emplois du temps:', error);
       throw error;
     }
   }

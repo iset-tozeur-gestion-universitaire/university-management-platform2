@@ -14,6 +14,7 @@ const ScheduleBuilder = () => {
   const [rooms, setRooms] = useState([]);
   const [schedule, setSchedule] = useState({});
   const [selectedClass, setSelectedClass] = useState('');
+  const [semestre, setSemestre] = useState(1);
   const [draggedItem, setDraggedItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,60 +45,26 @@ const ScheduleBuilder = () => {
     try {
       setLoading(true);
       
-      // Essayer de charger depuis l'API, sinon utiliser les données de test
-      try {
-        // Tentative de chargement depuis l'API
-        const [classesData, teachersData, subjectsData, roomsData] = await Promise.all([
-          scheduleService.getClasses(),
-          scheduleService.getTeachers(), 
-          scheduleService.getSubjects(),
-          scheduleService.getRooms()
-        ]);
+      // Charger les données depuis la base de données via admin-service
+      const [classesData, teachersData, subjectsData, roomsData] = await Promise.all([
+        scheduleService.getClasses(),
+        scheduleService.getTeachers(), 
+        scheduleService.getSubjects(),
+        scheduleService.getRooms()
+      ]);
 
-        setClasses(classesData);
-        setTeachers(teachersData);
-        setSubjects(subjectsData);
-        setRooms(roomsData);
-      } catch (apiError) {
-        console.warn('API non disponible, utilisation des données de test:', apiError);
-        
-        // Données de test en fallback
-        const mockData = {
-          classes: [
-            { id: 1, nom: 'L1 Info', niveau: 'Licence 1' },
-            { id: 2, nom: 'L2 Info', niveau: 'Licence 2' },
-            { id: 3, nom: 'L3 Info', niveau: 'Licence 3' }
-          ],
-          teachers: [
-            { id: 1, nom: 'Dupont', prenom: 'Jean', specialite: 'Programmation' },
-            { id: 2, nom: 'Martin', prenom: 'Marie', specialite: 'Base de données' },
-            { id: 3, nom: 'Durand', prenom: 'Pierre', specialite: 'Réseaux' }
-          ],
-          subjects: [
-            { id: 1, nom: 'Programmation Java', code: 'PROG001', couleur: '#4CAF50' },
-            { id: 2, nom: 'Base de données', code: 'BD001', couleur: '#2196F3' },
-            { id: 3, nom: 'Réseaux informatiques', code: 'RES001', couleur: '#FF9800' },
-            { id: 4, nom: 'Mathématiques', code: 'MATH001', couleur: '#9C27B0' }
-          ],
-          rooms: [
-            { id: 1, nom: 'Salle 101', type: 'Cours', capacite: 30 },
-            { id: 2, nom: 'Lab Info 1', type: 'TP', capacite: 20 },
-            { id: 3, nom: 'Salle 203', type: 'Cours', capacite: 40 }
-          ]
-        };
-
-        setClasses(mockData.classes);
-        setTeachers(mockData.teachers);
-        setSubjects(mockData.subjects);
-        setRooms(mockData.rooms);
-      }
+      setClasses(classesData);
+      setTeachers(teachersData);
+      setSubjects(subjectsData);
+      setRooms(roomsData);
       
       // Initialiser l'emploi du temps vide
       initializeSchedule();
       
       setLoading(false);
     } catch (err) {
-      setError('Erreur lors du chargement des données');
+      console.error('Erreur lors du chargement des données:', err);
+      setError('Erreur lors du chargement des données: ' + (err.message || 'Service indisponible'));
       setLoading(false);
     }
   };
@@ -209,61 +176,63 @@ const ScheduleBuilder = () => {
     try {
       // Valider l'emploi du temps
       const courses = [];
+      const dayToDate = {
+        'Lundi': 1,
+        'Mardi': 2,
+        'Mercredi': 3,
+        'Jeudi': 4,
+        'Vendredi': 5
+      };
+
       Object.entries(schedule).forEach(([day, slots]) => {
         Object.entries(slots).forEach(([timeSlot, course]) => {
-          if (course) {
+          if (course && course.teacher && course.room) {
+            const [heureDebut, heureFin] = timeSlot.split('-');
+            
+            // Créer une date pour le jour de la semaine
+            const today = new Date();
+            const currentDay = today.getDay(); // 0 = dimanche, 1 = lundi, etc.
+            const targetDay = dayToDate[day];
+            const diff = targetDay - currentDay;
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + diff);
+            
             courses.push({
               subjectId: course.subject.id,
-              teacherId: course.teacher?.id,
-              roomId: course.room?.id,
-              day,
-              timeSlot,
-              startTime: timeSlot.split('-')[0],
-              endTime: timeSlot.split('-')[1]
+              teacherId: course.teacher.id,
+              roomId: course.room.id,
+              date: targetDate.toISOString().split('T')[0],
+              heureDebut: heureDebut.trim(),
+              heureFin: heureFin.trim()
             });
           }
         });
       });
 
       if (courses.length === 0) {
-        alert('Aucun cours défini dans l\'emploi du temps');
+        alert('Aucun cours complet défini dans l\'emploi du temps.\nAssurez-vous d\'assigner un enseignant ET une salle à chaque cours.');
         return;
       }
 
-      // Vérifier les conflits avant sauvegarde
-      try {
-        await scheduleService.checkConflicts(courses);
-      } catch (conflictError) {
-        if (!window.confirm(
-          'Des conflits ont été détectés dans l\'emploi du temps. ' +
-          'Voulez-vous continuer la sauvegarde ?'
-        )) {
-          return;
-        }
-      }
-
       // Sauvegarder l'emploi du temps
-      try {
-        const scheduleData = {
-          classId: selectedClass,
-          courses,
-          semester: '2024-2025'
-        };
-        
-        await scheduleService.saveSchedule(scheduleData);
-        alert('Emploi du temps sauvegardé avec succès !');
-        
-        // Rediriger vers le dashboard directeur
-        navigate('/director-dashboard');
-      } catch (apiError) {
-        console.warn('API non disponible, sauvegarde locale:', apiError);
-        console.log('Données de l\'emploi du temps:', { selectedClass, courses });
-        alert('Emploi du temps sauvegardé localement (API non disponible)');
-      }
+      const scheduleData = {
+        classId: parseInt(selectedClass),
+        courses,
+        semestre
+      };
+      
+      await scheduleService.saveSchedule(scheduleData);
+      alert('Emploi du temps sauvegardé avec succès !');
+      
+      // Rediriger vers le dashboard directeur
+      navigate('/director-dashboard');
       
     } catch (err) {
       console.error('Erreur lors de la sauvegarde:', err);
-      alert('Erreur lors de la sauvegarde: ' + (err.message || err));
+      
+      // Afficher le message d'erreur spécifique du backend
+      const errorMessage = err.response?.data?.message || err.message || 'Erreur inconnue';
+      alert('Erreur lors de la sauvegarde: ' + errorMessage);
     }
   };
 
@@ -321,6 +290,14 @@ const ScheduleBuilder = () => {
         </div>
         <div className="header-right">
           <select
+            value={semestre}
+            onChange={(e) => setSemestre(parseInt(e.target.value))}
+            className="semestre-selector"
+          >
+            <option value={1}>Semestre 1</option>
+            <option value={2}>Semestre 2</option>
+          </select>
+          <select
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
             className="class-selector"
@@ -328,7 +305,7 @@ const ScheduleBuilder = () => {
             <option value="">Sélectionner une classe</option>
             {classes.map(classe => (
               <option key={classe.id} value={classe.id}>
-                {classe.nom} - {classe.niveau}
+                {classe.nom}
               </option>
             ))}
           </select>
@@ -352,10 +329,10 @@ const ScheduleBuilder = () => {
                 className="subject-card"
                 draggable
                 onDragStart={(e) => handleDragStart(e, subject, 'subject')}
-                style={{ borderLeft: `4px solid ${subject.couleur}` }}
+                style={{ borderLeft: `4px solid ${subject.couleur || '#ccc'}` }}
               >
                 <span className="subject-name">{subject.nom}</span>
-                <span className="subject-code">{subject.code}</span>
+                {subject.code && <span className="subject-code">{subject.code}</span>}
               </div>
             ))}
           </div>

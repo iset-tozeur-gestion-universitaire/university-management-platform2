@@ -8,8 +8,10 @@ const ScheduleViewer = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [schedules, setSchedules] = useState([]);
-  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [semestre, setSemestre] = useState(1);
+  const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,80 +34,55 @@ const ScheduleViewer = () => {
   ];
 
   useEffect(() => {
-    loadSchedules();
+    loadClasses();
   }, []);
 
-  const loadSchedules = async () => {
+  useEffect(() => {
+    if (selectedClass) {
+      loadSchedule();
+    }
+  }, [selectedClass, semestre]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadClasses = async () => {
     try {
       setLoading(true);
+      const classesData = await scheduleService.getClasses();
+      setClasses(classesData);
       
-      try {
-        // Essayer de charger depuis l'API
-        const schedulesData = await scheduleService.getAllSchedules();
-        setSchedules(schedulesData);
-      } catch (apiError) {
-        console.warn('API non disponible, utilisation des données de test:', apiError);
-        
-        // Données de test en fallback
-        const mockSchedules = [
-          {
-            id: 1,
-            className: 'L1 Info',
-            semester: '2024-2025',
-            validated: true,
-            createdAt: '2024-11-15',
-            courses: [
-              {
-                day: 'Lundi',
-                timeSlot: '08:00-09:30',
-                subject: { nom: 'Programmation Java', couleur: '#4CAF50' },
-                teacher: { nom: 'Dupont', prenom: 'Jean' },
-                room: { nom: 'Lab Info 1' }
-              },
-              {
-                day: 'Lundi', 
-                timeSlot: '09:45-11:15',
-                subject: { nom: 'Base de données', couleur: '#2196F3' },
-                teacher: { nom: 'Martin', prenom: 'Marie' },
-                room: { nom: 'Salle 101' }
-              },
-              {
-                day: 'Mardi',
-                timeSlot: '08:00-09:30',
-                subject: { nom: 'Mathématiques', couleur: '#9C27B0' },
-                teacher: { nom: 'Durand', prenom: 'Pierre' },
-                room: { nom: 'Salle 203' }
-              }
-            ]
-          },
-          {
-            id: 2,
-            className: 'L2 Info',
-            semester: '2024-2025',
-            validated: false,
-            createdAt: '2024-11-20',
-            courses: [
-              {
-                day: 'Lundi',
-                timeSlot: '14:00-15:30',
-                subject: { nom: 'Réseaux informatiques', couleur: '#FF9800' },
-                teacher: { nom: 'Durand', prenom: 'Pierre' },
-                room: { nom: 'Lab Réseau' }
-              }
-            ]
-          }
-        ];
-        setSchedules(mockSchedules);
+      // Sélectionner la première classe par défaut
+      if (classesData.length > 0) {
+        setSelectedClass(classesData[0].id.toString());
       }
       
       setLoading(false);
     } catch (err) {
-      setError('Erreur lors du chargement des emplois du temps');
+      console.error('Erreur lors du chargement des classes:', err);
+      setError('Erreur lors du chargement des classes: ' + (err.message || 'Service indisponible'));
       setLoading(false);
     }
   };
 
-  const formatScheduleForGrid = (courses) => {
+  const loadSchedule = async () => {
+    if (!selectedClass) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Récupérer l'emploi du temps de la classe pour le semestre
+      const data = await scheduleService.getScheduleByClass(parseInt(selectedClass), semestre);
+      setScheduleData(data);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Erreur lors du chargement de l\'emploi du temps:', err);
+      // Si aucun emploi du temps n'existe, ce n'est pas vraiment une erreur
+      setScheduleData(null);
+      setLoading(false);
+    }
+  };
+
+  const formatScheduleForGrid = (scheduleData) => {
     const grid = {};
     weekDays.forEach(day => {
       grid[day] = {};
@@ -114,10 +91,17 @@ const ScheduleViewer = () => {
       });
     });
 
-    courses.forEach(course => {
-      if (grid[course.day] && grid[course.day][course.timeSlot] !== undefined) {
-        grid[course.day][course.timeSlot] = course;
-      }
+    if (!scheduleData) return grid;
+
+    // scheduleData est groupé par jour depuis le backend
+    Object.entries(scheduleData).forEach(([jour, courses]) => {
+      courses.forEach(course => {
+        // Trouver le créneau horaire correspondant
+        const timeSlot = `${course.heureDebut}-${course.heureFin}`;
+        if (grid[jour] && grid[jour][timeSlot] !== undefined) {
+          grid[jour][timeSlot] = course;
+        }
+      });
     });
 
     return grid;
@@ -126,8 +110,12 @@ const ScheduleViewer = () => {
   const getCourseStyle = (course) => {
     if (!course) return {};
     
+    // Générer une couleur basée sur le nom de la matière
+    const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4', '#FFEB3B', '#E91E63'];
+    const colorIndex = (course.matiere || '').length % colors.length;
+    
     return {
-      backgroundColor: course.subject.couleur || '#ccc',
+      backgroundColor: colors[colorIndex],
       color: 'white',
       padding: '8px',
       borderRadius: '6px',
@@ -139,49 +127,13 @@ const ScheduleViewer = () => {
     };
   };
 
-  const duplicateSchedule = async (scheduleId) => {
-    try {
-      await scheduleService.duplicateSchedule(scheduleId, null);
-      alert('Emploi du temps dupliqué avec succès !');
-      loadSchedules(); // Recharger la liste
-    } catch (error) {
-      console.error('Erreur lors de la duplication:', error);
-      alert('Erreur lors de la duplication');
-    }
-  };
 
-  const validateSchedule = async (scheduleId) => {
-    try {
-      await scheduleService.validateSchedule(scheduleId);
-      alert('Emploi du temps validé avec succès !');
-      loadSchedules(); // Recharger la liste
-    } catch (error) {
-      console.error('Erreur lors de la validation:', error);
-      alert('Erreur lors de la validation');
-    }
-  };
-
-  const deleteSchedule = async (scheduleId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet emploi du temps ?')) {
-      return;
-    }
-
-    try {
-      await scheduleService.deleteSchedule(scheduleId);
-      alert('Emploi du temps supprimé avec succès !');
-      loadSchedules(); // Recharger la liste
-      setSelectedSchedule(null);
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-      alert('Erreur lors de la suppression');
-    }
-  };
 
   if (loading) {
     return (
       <div className="schedule-viewer-loading">
         <div className="loading-spinner"></div>
-        <p>Chargement des emplois du temps...</p>
+        <p>Chargement des données...</p>
       </div>
     );
   }
@@ -209,13 +161,32 @@ const ScheduleViewer = () => {
             ← Retour
           </button>
           <div>
-            <h1>📋 Emplois du Temps</h1>
+            <h1>📋 Visualiser Emplois du Temps</h1>
             <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>
               Connecté en tant que: {user?.prenom} {user?.nom} ({user?.role})
             </p>
           </div>
         </div>
         <div className="header-right">
+          <select
+            value={semestre}
+            onChange={(e) => setSemestre(parseInt(e.target.value))}
+            className="semestre-selector"
+          >
+            <option value={1}>Semestre 1</option>
+            <option value={2}>Semestre 2</option>
+          </select>
+          <select
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+            className="class-selector"
+          >
+            {classes.map(classe => (
+              <option key={classe.id} value={classe.id}>
+                {classe.nom}
+              </option>
+            ))}
+          </select>
           <button 
             className="create-btn"
             onClick={() => navigate('/schedule-builder')}
@@ -226,88 +197,28 @@ const ScheduleViewer = () => {
       </header>
 
       <div className="viewer-content">
-        <div className="schedules-list">
-          <h3>📚 Emplois du temps disponibles</h3>
-          {schedules.length === 0 ? (
-            <div className="empty-schedules">
-              <p>Aucun emploi du temps créé.</p>
-              <button onClick={() => navigate('/schedule-builder')}>
-                Créer le premier emploi du temps
-              </button>
-            </div>
-          ) : (
-            <div className="schedules-grid">
-              {schedules.map(schedule => (
-                <div
-                  key={schedule.id}
-                  className={`schedule-card ${selectedSchedule?.id === schedule.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedSchedule(schedule)}
-                >
-                  <div className="schedule-header">
-                    <h4>{schedule.className}</h4>
-                    <span className={`status ${schedule.validated ? 'validated' : 'draft'}`}>
-                      {schedule.validated ? '✅ Validé' : '⏳ Brouillon'}
-                    </span>
-                  </div>
-                  <div className="schedule-info">
-                    <p><strong>Semestre:</strong> {schedule.semester}</p>
-                    <p><strong>Créé le:</strong> {new Date(schedule.createdAt).toLocaleDateString()}</p>
-                    <p><strong>Nombre de cours:</strong> {schedule.courses?.length || 0}</p>
-                  </div>
-                  <div className="schedule-actions">
-                    <button 
-                      className="view-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedSchedule(schedule);
-                      }}
-                    >
-                      👁️ Voir
-                    </button>
-                    <button 
-                      className="duplicate-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        duplicateSchedule(schedule.id);
-                      }}
-                    >
-                      📄 Dupliquer
-                    </button>
-                    {!schedule.validated && (
-                      <button 
-                        className="validate-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          validateSchedule(schedule.id);
-                        }}
-                      >
-                        ✅ Valider
-                      </button>
-                    )}
-                    <button 
-                      className="delete-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteSchedule(schedule.id);
-                      }}
-                    >
-                      🗑️ Supprimer
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {selectedSchedule && (
+        {!scheduleData || Object.keys(scheduleData).length === 0 ? (
+          <div className="empty-schedule">
+            <h3>📋 Aucun emploi du temps</h3>
+            <p>
+              {selectedClass && classes.find(c => c.id.toString() === selectedClass)?.nom}
+              {' - Semestre '}{semestre}
+            </p>
+            <p>Aucun emploi du temps n'a été créé pour cette classe et ce semestre.</p>
+            <button 
+              className="create-btn"
+              onClick={() => navigate('/schedule-builder')}
+            >
+              ➕ Créer un emploi du temps
+            </button>
+          </div>
+        ) : (
           <div className="schedule-preview">
             <div className="preview-header">
-              <h3>📅 {selectedSchedule.className} - {selectedSchedule.semester}</h3>
+              <h3>
+                📅 {classes.find(c => c.id.toString() === selectedClass)?.nom} - Semestre {semestre}
+              </h3>
               <div className="preview-actions">
-                <button onClick={() => navigate(`/schedule-builder?edit=${selectedSchedule.id}`)}>
-                  ✏️ Modifier
-                </button>
                 <button onClick={() => window.print()}>
                   🖨️ Imprimer
                 </button>
@@ -323,7 +234,7 @@ const ScheduleViewer = () => {
               </div>
               
               {(() => {
-                const grid = formatScheduleForGrid(selectedSchedule.courses || []);
+                const grid = formatScheduleForGrid(scheduleData);
                 return timeSlots.map(timeSlot => (
                   <div key={timeSlot} className="grid-row">
                     <div className="time-slot">{timeSlot}</div>
@@ -332,13 +243,13 @@ const ScheduleViewer = () => {
                         {grid[day]?.[timeSlot] ? (
                           <div style={getCourseStyle(grid[day][timeSlot])}>
                             <div className="course-name">
-                              {grid[day][timeSlot].subject.nom}
+                              {grid[day][timeSlot].matiere}
                             </div>
                             <div className="course-teacher">
-                              {grid[day][timeSlot].teacher?.prenom} {grid[day][timeSlot].teacher?.nom}
+                              {grid[day][timeSlot].enseignant}
                             </div>
                             <div className="course-room">
-                              {grid[day][timeSlot].room?.nom}
+                              {grid[day][timeSlot].salle}
                             </div>
                           </div>
                         ) : (
