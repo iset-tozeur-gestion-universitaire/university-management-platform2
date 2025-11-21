@@ -18,33 +18,21 @@ const LoginPage = () => {
 
     try {
       const result = await login(email, password);
+      console.log('Login result:', result);
 
       if (result.success) {
-        // Redirect to role-specific dashboard based on type returned by backend
-        const userType = result.type || result.user?.role || user?.role;
-        switch (userType) {
-          case 'etudiant':
-            navigate('/student-dashboard');
-            break;
-          case 'enseignant':
-            navigate('/teacher-dashboard');
-            break;
-          case 'directeur_departement':
-            navigate('/director-dashboard');
-            break;
-          case 'admin':
-          case 'administratif':
-            navigate('/admin-dashboard');
-            break;
-          default:
-            navigate('/dashboard'); // fallback
-        }
+        // Redirect to director dashboard by default
+        console.log('Login successful, redirecting to director-dashboard');
+        navigate('/director-dashboard');
       } else if (result.mustChangePassword || result.message === 'Changement de mot de passe requis') {
+        console.log('Password change required');
         navigate('/change-password', { state: { email } });
       } else {
-        setError(result.message);
+        console.log('Login failed:', result.message);
+        setError(result.message || 'Erreur de connexion');
       }
     } catch (error) {
+      console.error('Login exception:', error);
       setError('Erreur de connexion');
     } finally {
       setLoading(false);

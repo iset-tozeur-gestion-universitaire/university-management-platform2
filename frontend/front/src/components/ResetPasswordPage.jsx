@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import PasswordValidator, { usePasswordValidation } from './PasswordValidator';
 
 // Constantes
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 const MIN_PASSWORD_LENGTH = 8;
 const REDIRECT_DELAY = 3000;
 

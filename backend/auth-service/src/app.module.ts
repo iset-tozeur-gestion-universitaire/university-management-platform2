@@ -24,7 +24,8 @@ import { MailerModule } from '@nestjs-modules/mailer';
     MailerModule.forRoot({
       transport: {
         host: process.env.MAIL_HOST,
-        port: Number(process.env.MAIL_PORT) || 2525,
+        port: Number(process.env.MAIL_PORT) || 587,
+        secure: Number(process.env.MAIL_PORT) === 465,
         auth: {
           user: process.env.MAIL_USER,
           pass: process.env.MAIL_PASS,
@@ -34,13 +35,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
         from: '"University Platform" <no-reply@university.com>',
       },
     }),
-  
-  ConfigModule.forRoot({
-        isGlobal: true, // makes config available everywhere
-      }),
 
-
-    
     UtilisateurModule,
     AuthModule,            
   ],
