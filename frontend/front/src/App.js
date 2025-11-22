@@ -28,6 +28,7 @@ import DashboardLayout from './components/DashboardLayout';
 // Nouvelles pages
 import NotesPage from './components/NotesPage';
 import StatisticsPage from './components/StatisticsPage';
+import Messaging from './components/Messaging';
 import MessagingPage from './components/MessagingPage';
 import BibliotequePage from './components/BibliotequePage';
 import ScolaritePage from './components/ScolaritePage';
