@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import scheduleService from '../services/scheduleService';
 import adminService from '../services/adminService';
 import './ScheduleViewer.css';
@@ -21,17 +20,7 @@ const RoomScheduleViewer = () => {
     '16:00-18:00'
   ];
 
-  useEffect(() => {
-    loadRooms();
-  }, []);
-
-  useEffect(() => {
-    if (selectedRoom) {
-      loadRoomSchedule();
-    }
-  }, [selectedRoom, semestre, loadRoomSchedule]);
-
-  const loadRooms = async () => {
+  const loadRooms = useCallback(async () => {
     try {
       setLoading(true);
       const data = await adminService.getSalles();
@@ -42,7 +31,7 @@ const RoomScheduleViewer = () => {
       setError('Impossible de charger la liste des salles');
       setLoading(false);
     }
-  };
+  }, []);
 
   const loadRoomSchedule = useCallback(async () => {
     if (!selectedRoom) return;
@@ -73,6 +62,16 @@ const RoomScheduleViewer = () => {
       setLoading(false);
     }
   }, [selectedRoom, semestre]);
+
+  useEffect(() => {
+    loadRooms();
+  }, [loadRooms]);
+
+  useEffect(() => {
+    if (selectedRoom) {
+      loadRoomSchedule();
+    }
+  }, [selectedRoom, semestre, loadRoomSchedule]);
 
   const formatScheduleForGrid = (scheduleData) => {
     // Créer la grille avec tous les jours et tous les créneaux standards

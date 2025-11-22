@@ -22,16 +22,6 @@ const TeacherScheduleViewer = () => {
     '16:00-18:00'
   ];
 
-  useEffect(() => {
-    loadTeachers();
-  }, [loadTeachers]);
-
-  useEffect(() => {
-    if (selectedTeacher) {
-      loadTeacherSchedule();
-    }
-  }, [selectedTeacher, semestre, loadTeacherSchedule]);
-
   const loadTeachers = useCallback(async () => {
     try {
       setLoading(true);
@@ -91,6 +81,16 @@ const TeacherScheduleViewer = () => {
       setLoading(false);
     }
   }, [selectedTeacher, semestre]);
+
+  useEffect(() => {
+    loadTeachers();
+  }, [loadTeachers]);
+
+  useEffect(() => {
+    if (selectedTeacher) {
+      loadTeacherSchedule();
+    }
+  }, [selectedTeacher, semestre, loadTeacherSchedule]);
 
   const formatScheduleForGrid = (scheduleData) => {
     console.log('🔍 formatScheduleForGrid called with:', scheduleData);
