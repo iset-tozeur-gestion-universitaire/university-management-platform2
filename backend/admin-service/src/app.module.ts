@@ -10,6 +10,7 @@ import { EtudiantModule } from './etudiant/etudiant.module';
 import { SalleModule } from './salle/salle.module';
 import { MatiereModule } from './matiere/matiere.module';
 import { MessageModule } from './message/message.module';
+import { DirecteurModule } from './directeur/directeur.module';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { MessageModule } from './message/message.module';
       port: 5432,
       username: 'postgres',
       password: '0000',
-      database: 'university_db_zei',
+      database: 'university_db_2',
       autoLoadEntities: true,
       synchronize: true,
     }),
@@ -34,6 +35,7 @@ import { MessageModule } from './message/message.module';
     SalleModule,
     MatiereModule,
     MessageModule,
+    DirecteurModule,
   ],
 })
 export class AppModule {}

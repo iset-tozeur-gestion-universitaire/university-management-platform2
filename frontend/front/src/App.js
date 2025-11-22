@@ -29,6 +29,7 @@ import DashboardLayout from './components/DashboardLayout';
 import NotesPage from './components/NotesPage';
 import StatisticsPage from './components/StatisticsPage';
 import Messaging from './components/Messaging';
+import MessagingPage from './components/MessagingPage';
 import BibliotequePage from './components/BibliotequePage';
 import ScolaritePage from './components/ScolaritePage';
 
@@ -174,7 +175,7 @@ function App() {
               path="/messagerie"
               element={
                 <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement", "administratif"]}>
-                  <Messaging />
+                  <MessagingPage />
                 </ProtectedRoute>
               }
             />
