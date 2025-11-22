@@ -152,14 +152,6 @@ function App() {
                 }
               />
               <Route
-                path="/messagerie"
-                element={
-                  <ProtectedRoute allowedRoles={["etudiant"]}>
-                    <MessagingPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/bibliotheque"
                 element={
                   <ProtectedRoute allowedRoles={["etudiant"]}>
@@ -178,6 +170,14 @@ function App() {
             </Route>
 
             {/* Pages sans sidebar (détachées du DashboardLayout) */}
+            <Route
+              path="/messagerie"
+              element={
+                <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement", "administratif"]}>
+                  <MessagingPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/my-schedule"
               element={

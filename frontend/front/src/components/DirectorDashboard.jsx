@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { directorService } from "../services/directorService";
 import "./DirectorDashboard.css";
 
 const DirectorDashboard = () => {
@@ -28,18 +29,19 @@ const DirectorDashboard = () => {
 
   const loadDashboardData = async () => {
     console.log('🔄 Chargement des données du dashboard directeur...');
-    console.log('⏰ Début du timeout de 300ms');
     
-    // Simulate API call for dashboard data
-    setTimeout(() => {
-      console.log('⏰ Timeout terminé, création des données...');
+    try {
+      // Récupérer les vraies statistiques depuis la base de données
+      const stats = await directorService.getStats();
+      console.log('✅ Statistiques récupérées:', stats);
+
       const data = {
         title: "Espace Directeur de Département",
         stats: [
-          { label: "Enseignants", value: "24", icon: "👨‍🏫", color: "primary" },
-          { label: "Étudiants", value: "450", icon: "👥", color: "turquoise" },
-          { label: "Cours actifs", value: "18", icon: "📚", color: "yellow" },
-          { label: "Taux de réussite", value: "82%", icon: "📊", color: "primary" },
+          { label: "Enseignants", value: stats.enseignants.toString(), icon: "👨‍🏫", color: "primary" },
+          { label: "Étudiants", value: stats.etudiants.toString(), icon: "👥", color: "turquoise" },
+          { label: "Classes", value: stats.classes.toString(), icon: "📚", color: "yellow" },
+          { label: "Taux de réussite", value: `${stats.tauxReussite}%`, icon: "📊", color: "primary" },
         ],
         actions: [
           { label: "👥 Gérer utilisateurs", description: "Administration des comptes utilisateurs", action: "manageUsers" },
@@ -51,10 +53,33 @@ const DirectorDashboard = () => {
           { label: "📝 Évaluations", description: "Gestion des évaluations", action: "evaluations" },
         ],
       };
-      console.log('✅ Données chargées:', data);
+      
       setDashboardData(data);
       setLoading(false);
-    }, 300);
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des stats:', error);
+      // En cas d'erreur, afficher des données par défaut
+      const data = {
+        title: "Espace Directeur de Département",
+        stats: [
+          { label: "Enseignants", value: "—", icon: "👨‍🏫", color: "primary" },
+          { label: "Étudiants", value: "—", icon: "👥", color: "turquoise" },
+          { label: "Classes", value: "—", icon: "📚", color: "yellow" },
+          { label: "Taux de réussite", value: "—", icon: "📊", color: "primary" },
+        ],
+        actions: [
+          { label: "👥 Gérer utilisateurs", description: "Administration des comptes utilisateurs", action: "manageUsers" },
+          { label: "👨‍🏫 Gérer enseignants", description: "Gestion du personnel enseignant", action: "manageTeachers" },
+          { label: "👨‍🎓 Gérer étudiants", description: "Gestion des étudiants du département", action: "manageStudents" },
+          { label: "💬 Messagerie", description: "Messagerie interne avec enseignants et étudiants", action: "messaging" },
+          { label: "📊 Rapports", description: "Générer des rapports département", action: "reports" },
+          { label: "💰 Budget", description: "Suivi budgétaire du département", action: "budget" },
+          { label: "📝 Évaluations", description: "Gestion des évaluations", action: "evaluations" },
+        ],
+      };
+      setDashboardData(data);
+      setLoading(false);
+    }
   };
 
   const handleAction = (action) => {

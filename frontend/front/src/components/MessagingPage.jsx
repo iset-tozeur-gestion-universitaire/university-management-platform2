@@ -1,116 +1,116 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Send, Search, Star, Trash2, Archive, Clock, Paperclip, X } from 'lucide-react';
+import { messageService } from '../services/messageService';
+import { userService } from '../services/userService';
+import { useAuth } from '../contexts/AuthContext';
 
 const MessagingPage = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('tous');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCompose, setShowCompose] = useState(false);
-  const [newMessage, setNewMessage] = useState({ destinataire: '', sujet: '', contenu: '' });
+  const [newMessage, setNewMessage] = useState({ receiverEmail: '', receiverRole: '', subject: '', content: '' });
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [roleFilter, setRoleFilter] = useState(''); // Filtre par rôle
 
   useEffect(() => {
     loadMessages();
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const allUsers = await userService.getAllUsers();
+      setUsers(allUsers);
+    } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error);
+      setUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   const loadMessages = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const messagesData = [
-      {
-        id: 1,
-        expediteur: 'Prof. Fatma Touati',
-        sujet: 'Correction TP Programmation Avancée',
-        contenu: 'Bonjour,\n\nJe viens de corriger votre TP sur les structures de données. Excellent travail ! Vous avez obtenu 18/20.\n\nContinuez comme ça !\n\nCordialement,\nProf. Touati',
-        date: '2024-11-20T14:30:00',
-        lu: false,
-        important: true,
-        categorie: 'academique'
-      },
-      {
-        id: 2,
-        expediteur: 'Service Scolarité',
-        sujet: 'Relevé de notes Semestre 1',
-        contenu: 'Cher étudiant,\n\nVotre relevé de notes du semestre 1 est maintenant disponible dans votre espace personnel.\n\nMoyenne: 14.8/20\n\nPour toute réclamation, merci de nous contacter sous 48h.\n\nService Scolarité',
-        date: '2024-11-19T09:15:00',
-        lu: true,
-        important: false,
-        categorie: 'administratif',
-        pieceJointe: 'releve_notes_S1.pdf'
-      },
-      {
-        id: 3,
-        expediteur: 'Dr. Mohamed Trabelsi',
-        sujet: 'Projet Base de Données - Soutenance',
-        contenu: 'Bonjour,\n\nVotre soutenance de projet Base de Données est prévue le 25 novembre à 14h00 en salle C102.\n\nMerci de préparer:\n- Présentation PowerPoint (20 min)\n- Démonstration live (10 min)\n- Documentation technique\n\nBonne préparation !\n\nDr. Trabelsi',
-        date: '2024-11-18T16:45:00',
-        lu: false,
-        important: true,
-        categorie: 'academique'
-      },
-      {
-        id: 4,
-        expediteur: 'Bibliothèque Universitaire',
-        sujet: 'Rappel - Livre à rendre',
-        contenu: 'Bonjour,\n\nNous vous rappelons que le livre "Algorithmique et Programmation" emprunté le 05/11/2024 doit être rendu avant le 26/11/2024.\n\nMerci de votre compréhension.\n\nBibliothèque',
-        date: '2024-11-17T11:00:00',
-        lu: true,
-        important: false,
-        categorie: 'bibliotheque'
-      },
-      {
-        id: 5,
-        expediteur: 'Prof. Youssef Mejri',
-        sujet: 'Invitation Séminaire IA',
-        contenu: 'Cher étudiant,\n\nVous êtes invité à participer au séminaire "Intelligence Artificielle et Applications" qui se tiendra le 30 novembre 2024 à 10h00 dans l\'amphithéâtre principal.\n\nIntervenants:\n- Dr. Sarah Khalil (Google AI)\n- Prof. Karim Mansour (MIT)\n\nInscription obligatoire avant le 28/11.\n\nCordialement,\nProf. Mejri',
-        date: '2024-11-16T13:20:00',
-        lu: true,
-        important: true,
-        categorie: 'evenement'
-      },
-      {
-        id: 6,
-        expediteur: 'Association des Étudiants',
-        sujet: 'Hackathon 2024 - Inscription ouverte',
-        contenu: 'Salut,\n\nLe Hackathon annuel de l\'ENIS aura lieu les 15-16 décembre 2024 !\n\nThème: "Solutions innovantes pour l\'environnement"\n\nPrix:\n1er: 5000 TND\n2ème: 3000 TND\n3ème: 1500 TND\n\nInscris-toi vite sur notre site !\n\nL\'équipe AE',
-        date: '2024-11-15T10:30:00',
-        lu: true,
-        important: false,
-        categorie: 'evenement'
-      },
-      {
-        id: 7,
-        expediteur: 'Service Stage',
-        sujet: 'Offres de stage disponibles',
-        contenu: 'Bonjour,\n\nDe nouvelles offres de stage sont disponibles:\n\n1. Développeur Full-Stack - TechCorp (Tunis)\n2. Data Scientist - DataLab (Sfax)\n3. Ingénieur DevOps - CloudSys (Sousse)\n\nConsultez les détails sur le portail des stages.\n\nService Stage',
-        date: '2024-11-14T14:00:00',
-        lu: true,
-        important: false,
-        categorie: 'stage'
-      }
-    ];
-    
-    setMessages(messagesData);
-    setLoading(false);
+    try {
+      const data = await messageService.getAllMessages();
+      // Transform backend data to match frontend structure
+      const transformedMessages = data.map(msg => {
+        // Déterminer si c'est un message reçu ou envoyé
+        const isReceived = msg.receiverEmail === user?.email;
+        
+        return {
+          id: msg.id,
+          expediteur: isReceived ? msg.senderEmail : msg.receiverEmail,
+          expediteurRole: isReceived ? msg.senderRole : msg.receiverRole,
+          sujet: msg.subject,
+          contenu: msg.content,
+          date: msg.createdAt,
+          lu: msg.isRead,
+          important: false, // Could be added to backend later
+          categorie: 'academique',
+          receiverEmail: msg.receiverEmail,
+          receiverRole: msg.receiverRole,
+          senderEmail: msg.senderEmail,
+          senderRole: msg.senderRole,
+          isReceived: isReceived
+        };
+      });
+      setMessages(transformedMessages);
+    } catch (error) {
+      console.error('Erreur lors du chargement des messages:', error);
+      // Fallback to empty array if error
+      setMessages([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSendMessage = () => {
-    if (!newMessage.destinataire || !newMessage.sujet || !newMessage.contenu) {
+  const handleSendMessage = async () => {
+    if (!newMessage.receiverEmail || !newMessage.receiverRole || !newMessage.subject || !newMessage.content) {
       alert('Veuillez remplir tous les champs');
       return;
     }
     
-    alert('Message envoyé avec succès !');
-    setShowCompose(false);
-    setNewMessage({ destinataire: '', sujet: '', contenu: '' });
+    setSendingMessage(true);
+    try {
+      await messageService.sendMessage({
+        receiverEmail: newMessage.receiverEmail,
+        receiverRole: newMessage.receiverRole,
+        subject: newMessage.subject,
+        content: newMessage.content
+      });
+      
+      alert('Message envoyé avec succès !');
+      setShowCompose(false);
+      setNewMessage({ receiverEmail: '', receiverRole: '', subject: '', content: '' });
+      
+      // Recharger les messages
+      await loadMessages();
+    } catch (error) {
+      console.error('Erreur lors de l envoi:', error);
+      alert('Erreur lors de l envoi du message');
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
-  const handleMarkAsRead = (id) => {
-    setMessages(messages.map(msg => 
-      msg.id === id ? { ...msg, lu: true } : msg
-    ));
+  const handleMarkAsRead = async (id) => {
+    try {
+      await messageService.markAsRead(id);
+      setMessages(messages.map(msg => 
+        msg.id === id ? { ...msg, lu: true } : msg
+      ));
+    } catch (error) {
+      console.error('Erreur lors du marquage comme lu:', error);
+    }
   };
 
   const handleDeleteMessage = (id) => {
@@ -159,7 +159,11 @@ const MessagingPage = () => {
             </p>
           </div>
           <button
-            onClick={() => setShowCompose(true)}
+            onClick={() => {
+              setShowCompose(true);
+              setRoleFilter(''); // Réinitialiser le filtre
+              setNewMessage({ receiverEmail: '', receiverRole: '', subject: '', content: '' });
+            }}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
           >
             <Send className="w-5 h-5" />
@@ -298,7 +302,29 @@ const MessagingPage = () => {
 
                 {/* Actions */}
                 <div className="p-4 border-t border-gray-200 bg-gray-50">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <button 
+                    onClick={() => {
+                      setShowCompose(true);
+                      // Si c'est un message reçu, répondre à l'expéditeur
+                      // Si c'est un message envoyé, répondre au destinataire
+                      const replyToEmail = selectedMessage.isReceived 
+                        ? selectedMessage.senderEmail 
+                        : selectedMessage.receiverEmail;
+                      const replyToRole = selectedMessage.isReceived 
+                        ? selectedMessage.senderRole 
+                        : selectedMessage.receiverRole;
+                      
+                      setNewMessage({
+                        receiverEmail: replyToEmail,
+                        receiverRole: replyToRole,
+                        subject: selectedMessage.sujet.startsWith('Re:') 
+                          ? selectedMessage.sujet 
+                          : `Re: ${selectedMessage.sujet}`,
+                        content: `\n\n---\nMessage original de ${selectedMessage.expediteur}:\n${selectedMessage.contenu}`
+                      });
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
                     <Send className="w-4 h-4" />
                     Répondre
                   </button>
@@ -322,7 +348,10 @@ const MessagingPage = () => {
               <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="text-xl font-bold text-gray-800">Nouveau message</h3>
                 <button
-                  onClick={() => setShowCompose(false)}
+                  onClick={() => {
+                    setShowCompose(false);
+                    setRoleFilter(''); // Réinitialiser le filtre
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
@@ -330,23 +359,85 @@ const MessagingPage = () => {
               </div>
               
               <div className="p-6 space-y-4">
+                {/* Filtre par rôle - seulement pour nouveau message */}
+                {!selectedMessage || !newMessage.subject.startsWith('Re:') ? (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Filtrer par rôle
+                    </label>
+                    <select
+                      value={roleFilter}
+                      onChange={(e) => {
+                        setRoleFilter(e.target.value);
+                        // Réinitialiser le destinataire si on change le filtre
+                        setNewMessage({ ...newMessage, receiverEmail: '', receiverRole: '' });
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Tous les rôles</option>
+                      <option value="etudiant">Étudiants seulement</option>
+                      <option value="enseignant">Enseignants seulement</option>
+                      <option value="directeur_departement">Directeurs seulement</option>
+                      <option value="administratif">Administratifs seulement</option>
+                    </select>
+                  </div>
+                ) : null}
+
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Destinataire</label>
-                  <input
-                    type="text"
-                    value={newMessage.destinataire}
-                    onChange={(e) => setNewMessage({ ...newMessage, destinataire: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Nom de l'enseignant ou service"
-                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Destinataire <span className="text-red-500">*</span>
+                  </label>
+                  {!!selectedMessage && newMessage.subject.startsWith('Re:') ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={`${newMessage.receiverEmail} (${newMessage.receiverRole})`}
+                        readOnly
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Le destinataire est fixé pour la réponse</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <select
+                        value={`${newMessage.receiverEmail}|${newMessage.receiverRole}`}
+                        onChange={(e) => {
+                          const [email, role] = e.target.value.split('|');
+                          setNewMessage({ ...newMessage, receiverEmail: email, receiverRole: role });
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="|">Sélectionner un destinataire</option>
+                        {loadingUsers ? (
+                          <option disabled>Chargement...</option>
+                        ) : (
+                          users
+                            .filter(u => !roleFilter || u.role === roleFilter)
+                            .map((u, idx) => (
+                              <option key={idx} value={`${u.email}|${u.role}`}>
+                                {u.nom} - {u.role === 'enseignant' ? 'Enseignant' : 
+                                          u.role === 'etudiant' ? 'Étudiant' : 
+                                          u.role === 'directeur_departement' ? 'Directeur' : 
+                                          'Administratif'} ({u.email})
+                              </option>
+                            ))
+                        )}
+                      </select>
+                      {users.filter(u => !roleFilter || u.role === roleFilter).length === 0 && !loadingUsers && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          {roleFilter ? `Aucun utilisateur avec le rôle sélectionné` : 'Aucun utilisateur disponible'}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Sujet</label>
                   <input
                     type="text"
-                    value={newMessage.sujet}
-                    onChange={(e) => setNewMessage({ ...newMessage, sujet: e.target.value })}
+                    value={newMessage.subject}
+                    onChange={(e) => setNewMessage({ ...newMessage, subject: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Objet du message"
                   />
@@ -355,8 +446,8 @@ const MessagingPage = () => {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
                   <textarea
-                    value={newMessage.contenu}
-                    onChange={(e) => setNewMessage({ ...newMessage, contenu: e.target.value })}
+                    value={newMessage.content}
+                    onChange={(e) => setNewMessage({ ...newMessage, content: e.target.value })}
                     rows="8"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Écrivez votre message ici..."
@@ -366,13 +457,17 @@ const MessagingPage = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={handleSendMessage}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                    disabled={sendingMessage}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="w-5 h-5" />
-                    Envoyer
+                    {sendingMessage ? 'Envoi...' : 'Envoyer'}
                   </button>
                   <button
-                    onClick={() => setShowCompose(false)}
+                    onClick={() => {
+                      setShowCompose(false);
+                      setRoleFilter(''); // Réinitialiser le filtre
+                    }}
                     className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
                   >
                     Annuler
