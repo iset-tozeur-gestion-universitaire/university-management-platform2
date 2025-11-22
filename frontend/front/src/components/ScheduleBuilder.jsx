@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { scheduleService } from '../services/scheduleService';
+import scheduleService from '../services/scheduleService';
+import adminService from '../services/adminService';
 import './ScheduleBuilder.css';
 
 const ScheduleBuilder = () => {
@@ -42,7 +43,6 @@ const ScheduleBuilder = () => {
     loadData();
     
     // Check if we're in edit mode with params
-    const modeParam = searchParams.get('mode');
     const classIdParam = searchParams.get('classId');
     const semestreParam = searchParams.get('semestre');
     
@@ -60,10 +60,10 @@ const ScheduleBuilder = () => {
       
       // Charger les données depuis la base de données via admin-service
       const [classesData, teachersData, subjectsData, roomsData] = await Promise.all([
-        scheduleService.getClasses(),
-        scheduleService.getTeachers(), 
-        scheduleService.getSubjects(),
-        scheduleService.getRooms()
+        adminService.getClasses(),
+        adminService.getEnseignants(), 
+        adminService.getMatieres(),
+        adminService.getSalles()
       ]);
 
       setClasses(classesData);
@@ -154,7 +154,8 @@ const ScheduleBuilder = () => {
                   room,
                   day: jour,
                   timeSlot,
-                  class: selectedClass
+                  class: selectedClass,
+                  isNew: false // Marquer comme existant
                 };
               }
             }
@@ -200,7 +201,6 @@ const ScheduleBuilder = () => {
     
     // Créer un nouveau cours
     const newCourse = {
-      id: Date.now(), // ID temporaire
       subject: draggedItem,
       day,
       timeSlot,
@@ -312,8 +312,8 @@ const ScheduleBuilder = () => {
               heureFin: heureFin.trim()
             };
             
-            // Check if this is an existing course (has id) or a new one
-            if (course.id) {
+            // Check if this is an existing course (has id and not marked as new) or a new one
+            if (course.id && !course.isNew) {
               coursesToUpdate.push({
                 id: course.id,
                 ...courseData

@@ -11,7 +11,7 @@ async function bootstrap() {
   const isProd = process.env.NODE_ENV === 'production';
   const allowedOrigins = process.env.FRONTEND_URLS
     ? process.env.FRONTEND_URLS.split(',').map((u) => u.trim())
-    : ['http://localhost:3000', 'http://localhost:3003', 'http://localhost:3004'];
+    : ['http://localhost:3000', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'];
 
   app.enableCors({
     origin: isProd ? allowedOrigins || [] : allowedOrigins,

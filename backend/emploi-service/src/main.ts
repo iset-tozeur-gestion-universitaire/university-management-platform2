@@ -20,7 +20,7 @@ async function bootstrap() {
   // Allow cross-origin requests from the frontend during development.
   // Set FRONTEND_ORIGIN in the service's .env to override the default.
   app.enableCors({
-    origin: process.env.FRONTEND_ORIGIN || 'http://localhost:3004',
+    origin: process.env.FRONTEND_ORIGIN || ['http://localhost:3004', 'http://localhost:3005'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Authorization',
     credentials: true,
