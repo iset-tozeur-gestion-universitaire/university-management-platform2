@@ -61,11 +61,19 @@ const Messaging = () => {
     try {
       // Load students
       const studentsRes = await fetch('http://localhost:3002/etudiants');
-      const students = await studentsRes.json();
+      if (!studentsRes.ok) {
+        console.error('❌ Erreur chargement étudiants:', studentsRes.status);
+      }
+      const students = studentsRes.ok ? await studentsRes.json() : [];
+      console.log('📚 Étudiants chargés:', students.length);
 
       // Load teachers
       const teachersRes = await fetch('http://localhost:3002/enseignant');
-      const teachers = await teachersRes.json();
+      if (!teachersRes.ok) {
+        console.error('❌ Erreur chargement enseignants:', teachersRes.status);
+      }
+      const teachers = teachersRes.ok ? await teachersRes.json() : [];
+      console.log('👨‍🏫 Enseignants chargés:', teachers.length);
 
       // Load admins
       const adminsRes = await fetch('http://localhost:3001/api/auth/users/administratif', {
@@ -73,7 +81,11 @@ const Messaging = () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const admins = await adminsRes.json();
+      if (!adminsRes.ok) {
+        console.error('❌ Erreur chargement administratifs:', adminsRes.status);
+      }
+      const admins = adminsRes.ok ? await adminsRes.json() : [];
+      console.log('👔 Administratifs chargés:', admins.length);
 
       // Load directors
       const directorsRes = await fetch('http://localhost:3001/api/auth/users/directeur_departement', {
@@ -81,7 +93,11 @@ const Messaging = () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const directors = await directorsRes.json();
+      if (!directorsRes.ok) {
+        console.error('❌ Erreur chargement directeurs:', directorsRes.status);
+      }
+      const directors = directorsRes.ok ? await directorsRes.json() : [];
+      console.log('🎓 Directeurs chargés:', directors.length);
 
       const allUsers = [
         ...students.map(s => ({ email: s.email, role: 'etudiant', name: `${s.nom} ${s.prenom}` })),
@@ -90,9 +106,10 @@ const Messaging = () => {
         ...directors.map(d => ({ email: d.email, role: 'directeur_departement', name: `${d.nom} ${d.prenom}` })),
       ];
 
+      console.log('📋 Total utilisateurs chargés:', allUsers.length);
       setUsers(allUsers);
     } catch (err) {
-      console.error('Erreur lors du chargement des utilisateurs:', err);
+      console.error('❌ Erreur lors du chargement des utilisateurs:', err);
     }
   };
 

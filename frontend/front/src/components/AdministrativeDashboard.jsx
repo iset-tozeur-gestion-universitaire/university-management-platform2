@@ -257,71 +257,99 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Vérifier les nouveaux messages toutes les 30 secondes
+  useEffect(() => {
+    const messageInterval = setInterval(() => {
+      loadMessages();
+    }, 30000); // Toutes les 30 secondes
+
+    return () => clearInterval(messageInterval);
+  }, [messages]); // Dépend de messages pour comparer les nouveaux
+
   // Charger les messages depuis localStorage
-  const loadMessages = () => {
-    const saved = localStorage.getItem('messages');
-    if (saved) {
-      const msgs = JSON.parse(saved);
-      setMessages(msgs);
-      setUnreadMessages(msgs.filter(m => m.to === user?.email && !m.read).length);
-    } else {
-      // Messages de démonstration
-      const demoMessages = [
-        {
-          id: 1,
-          from: 'enseignant@iset.tn',
-          fromName: 'Prof. Ahmed Ben Ali',
-          to: user?.email,
-          subject: 'Demande de réunion',
-          body: 'Bonjour,\n\nJ\'aimerais organiser une réunion pour discuter du nouveau programme.\n\nCordialement,\nProf. Ahmed',
-          date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          read: false
+  const loadMessages = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/messages', {
+        headers: {
+          'x-user-email': user.email,
+          'x-user-role': user.role,
         },
-        {
-          id: 2,
-          from: 'etudiant@iset.tn',
-          fromName: 'Étudiant Mohamed Salah',
-          to: user?.email,
-          subject: 'Question sur inscription',
-          body: 'Bonjour,\n\nJe voudrais savoir comment modifier ma classe.\n\nMerci',
-          date: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          read: false
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const previousUnreadCount = messages.filter(m => m.receiverEmail === user?.email && !m.isRead).length;
+        const newUnreadCount = data.filter(m => m.receiverEmail === user?.email && !m.isRead).length;
+        
+        // Si on a de nouveaux messages non lus, afficher une notification
+        if (newUnreadCount > previousUnreadCount && messages.length > 0) {
+          const newMessages = data.filter(m => 
+            m.receiverEmail === user?.email && 
+            !m.isRead && 
+            !messages.find(oldMsg => oldMsg.id === m.id)
+          );
+          
+          newMessages.forEach(msg => {
+            addNotification(
+              `📧 Nouveau message de ${msg.senderEmail}: ${msg.subject}`,
+              'info'
+            );
+          });
         }
-      ];
-      setMessages(demoMessages);
-      setUnreadMessages(2);
-      localStorage.setItem('messages', JSON.stringify(demoMessages));
+        
+        setMessages(data);
+        setUnreadMessages(newUnreadCount);
+      } else {
+        console.error('Erreur lors du chargement des messages');
+      }
+    } catch (err) {
+      console.error('Erreur de connexion:', err);
     }
   };
 
   // Envoyer un message
-  const sendMessage = (to, toName, subject, body) => {
-    const newMessage = {
-      id: Date.now(),
-      from: user?.email,
-      fromName: `${user?.prenom} ${user?.nom}`,
-      to,
-      toName,
-      subject,
-      body,
-      date: new Date().toISOString(),
-      read: false,
-      sent: true
-    };
-    const updated = [newMessage, ...messages];
-    setMessages(updated);
-    localStorage.setItem('messages', JSON.stringify(updated));
-    addNotification(`Message envoyé à ${toName}`, 'success');
+  const sendMessage = async (receiverEmail, receiverRole, subject, content) => {
+    try {
+      const response = await fetch('http://localhost:3002/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': user.email,
+          'x-user-role': user.role,
+        },
+        body: JSON.stringify({
+          receiverEmail,
+          receiverRole,
+          subject,
+          content
+        }),
+      });
+
+      if (response.ok) {
+        addNotification(`Message envoyé à ${receiverEmail}`, 'success');
+        loadMessages();
+      } else {
+        addNotification('Erreur lors de l\'envoi du message', 'error');
+      }
+    } catch (err) {
+      console.error('Erreur lors de l\'envoi:', err);
+      addNotification('Erreur de connexion', 'error');
+    }
   };
 
   // Marquer message comme lu
-  const markMessageAsRead = (id) => {
-    const updated = messages.map(m => 
-      m.id === id ? { ...m, read: true } : m
-    );
-    setMessages(updated);
-    setUnreadMessages(updated.filter(m => m.to === user?.email && !m.read).length);
-    localStorage.setItem('messages', JSON.stringify(updated));
+  const markMessageAsRead = async (id) => {
+    try {
+      await fetch(`http://localhost:3002/messages/${id}/read`, {
+        method: 'PATCH',
+        headers: {
+          'x-user-email': user.email,
+          'x-user-role': user.role,
+        },
+      });
+      loadMessages();
+    } catch (err) {
+      console.error('Erreur lors du marquage comme lu:', err);
+    }
   };
 
   // Supprimer un message
@@ -2097,8 +2125,8 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
 
   // Rendu de la page Messagerie
   const renderMessages = () => {
-    const receivedMessages = messages.filter(m => m.to === user?.email);
-    const sentMessages = messages.filter(m => m.from === user?.email);
+    const receivedMessages = messages.filter(m => m.receiverEmail === user?.email);
+    const sentMessages = messages.filter(m => m.senderEmail === user?.email);
     
     const filteredMessages = messageFilter === 'received' ? receivedMessages :
                             messageFilter === 'sent' ? sentMessages :
@@ -2163,17 +2191,17 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredMessages.sort((a, b) => new Date(b.date) - new Date(a.date)).map((msg) => (
+              {filteredMessages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((msg) => (
                 <div
                   key={msg.id}
                   onClick={() => {
                     setSelectedMessage(msg);
-                    if (msg.to === user?.email && !msg.read) {
+                    if (msg.receiverEmail === user?.email && !msg.isRead) {
                       markMessageAsRead(msg.id);
                     }
                   }}
                   className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                    msg.to === user?.email && !msg.read
+                    msg.receiverEmail === user?.email && !msg.isRead
                       ? 'bg-blue-50 border-blue-200'
                       : 'bg-white border-gray-200'
                   }`}
@@ -2181,32 +2209,32 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        {msg.to === user?.email && !msg.read && (
+                        {msg.receiverEmail === user?.email && !msg.isRead && (
                           <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
                         )}
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                          {msg.from === user?.email ? 
-                            msg.toName?.charAt(0).toUpperCase() : 
-                            msg.fromName?.charAt(0).toUpperCase()
+                          {msg.senderEmail === user?.email ? 
+                            msg.receiverEmail?.charAt(0).toUpperCase() : 
+                            msg.senderEmail?.charAt(0).toUpperCase()
                           }
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold text-gray-800">
-                            {msg.from === user?.email ? `À: ${msg.toName}` : `De: ${msg.fromName}`}
+                            {msg.senderEmail === user?.email ? `À: ${msg.receiverEmail}` : `De: ${msg.senderEmail}`}
                           </p>
                           <p className="text-sm text-gray-600">{msg.subject}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">
-                            {new Date(msg.date).toLocaleDateString('fr-FR')}
+                            {new Date(msg.createdAt).toLocaleDateString('fr-FR')}
                           </p>
                           <p className="text-xs text-gray-400">
-                            {new Date(msg.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(msg.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600 ml-14 line-clamp-2">
-                        {msg.body}
+                        {msg.content}
                       </p>
                     </div>
                     <button
@@ -2439,7 +2467,8 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
         alert('Veuillez remplir tous les champs');
         return;
       }
-      onSend(to, toName, subject, body);
+      const receiverRole = recipientType === 'teacher' ? 'enseignant' : 'etudiant';
+      onSend(to, receiverRole, subject, body);
       onClose();
     };
 
@@ -2564,30 +2593,33 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
           <div className="p-6 space-y-4">
             <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                {message.from === currentUserEmail ? 
-                  message.toName?.charAt(0).toUpperCase() : 
-                  message.fromName?.charAt(0).toUpperCase()
+                {message.senderEmail === currentUserEmail ? 
+                  message.receiverEmail?.charAt(0).toUpperCase() : 
+                  message.senderEmail?.charAt(0).toUpperCase()
                 }
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-gray-800">
-                  {message.from === currentUserEmail ? 
-                    `À: ${message.toName}` : 
-                    `De: ${message.fromName}`
+                  {message.senderEmail === currentUserEmail ? 
+                    `À: ${message.receiverEmail}` : 
+                    `De: ${message.senderEmail}`
                   }
                 </p>
                 <p className="text-sm text-gray-600">
-                  {message.from === currentUserEmail ? message.to : message.from}
+                  {message.senderEmail === currentUserEmail ? 
+                    `Rôle: ${message.receiverRole}` : 
+                    `Rôle: ${message.senderRole}`
+                  }
                 </p>
               </div>
               <div className="text-right text-sm text-gray-500">
-                <p>{new Date(message.date).toLocaleDateString('fr-FR')}</p>
-                <p>{new Date(message.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                <p>{new Date(message.createdAt).toLocaleDateString('fr-FR')}</p>
+                <p>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
             </div>
 
             <div className="prose max-w-none">
-              <p className="whitespace-pre-wrap text-gray-700">{message.body}</p>
+              <p className="whitespace-pre-wrap text-gray-700">{message.content}</p>
             </div>
           </div>
 
@@ -2598,9 +2630,9 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
             >
               Fermer
             </button>
-            {message.from !== currentUserEmail && (
+            {message.senderEmail !== currentUserEmail && (
               <button
-                onClick={() => onReply(message.from, message.fromName)}
+                onClick={() => onReply(message.senderEmail, message.senderRole)}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <Send size={18} />
@@ -2624,9 +2656,7 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
       case 'matieres': return renderMatieres();
       case 'salles': return renderSalles();
       case 'reports': return renderReports();
-      case 'messages': 
-        navigate('/messagerie');
-        return null;
+      case 'messages': return renderMessages();
       case 'notifications': return renderNotifications();
       case 'profile': return renderProfile();
       default: return renderDashboard();
