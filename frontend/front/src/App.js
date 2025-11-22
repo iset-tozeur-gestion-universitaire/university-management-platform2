@@ -28,7 +28,7 @@ import DashboardLayout from './components/DashboardLayout';
 // Nouvelles pages
 import NotesPage from './components/NotesPage';
 import StatisticsPage from './components/StatisticsPage';
-import MessagingPage from './components/MessagingPage';
+import Messaging from './components/Messaging';
 import BibliotequePage from './components/BibliotequePage';
 import ScolaritePage from './components/ScolaritePage';
 
@@ -152,14 +152,6 @@ function App() {
                 }
               />
               <Route
-                path="/messagerie"
-                element={
-                  <ProtectedRoute allowedRoles={["etudiant"]}>
-                    <MessagingPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/bibliotheque"
                 element={
                   <ProtectedRoute allowedRoles={["etudiant"]}>
@@ -178,6 +170,14 @@ function App() {
             </Route>
 
             {/* Pages sans sidebar (détachées du DashboardLayout) */}
+            <Route
+              path="/messagerie"
+              element={
+                <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement", "administratif"]}>
+                  <Messaging />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/my-schedule"
               element={
