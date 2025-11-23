@@ -8,6 +8,7 @@ import {
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LandingPage from "./components/LandingPage";
 import LoginPage from "./components/LoginPage";
+import StudentProfile from "./components/StudentProfile";
 import StudentDashboard from "./components/StudentDashboard";
 import TeacherDashboard from "./components/TeacherDashboard";
 import DirectorDashboard from "./components/DirectorDashboard";
@@ -28,7 +29,6 @@ import DashboardLayout from './components/DashboardLayout';
 // Nouvelles pages
 import NotesPage from './components/NotesPage';
 import StatisticsPage from './components/StatisticsPage';
-import Messaging from './components/Messaging';
 import MessagingPage from './components/MessagingPage';
 import BibliotequePage from './components/BibliotequePage';
 import ScolaritePage from './components/ScolaritePage';
@@ -168,25 +168,31 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/student-profile"
+                element={
+                  <ProtectedRoute allowedRoles={["etudiant"]}>
+                    <StudentProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/messagerie"
+                element={
+                  <ProtectedRoute allowedRoles={["etudiant"]}>
+                    <MessagingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-schedule"
+                element={
+                  <ProtectedRoute allowedRoles={["etudiant"]}>
+                    <MySchedule />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
-
-            {/* Pages sans sidebar (détachées du DashboardLayout) */}
-            <Route
-              path="/messagerie"
-              element={
-                <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement", "administratif"]}>
-                  <MessagingPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-schedule"
-              element={
-                <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement"]}>
-                  <MySchedule />
-                </ProtectedRoute>
-              }
-            />
             <Route
               path="/teacher-dashboard"
               element={

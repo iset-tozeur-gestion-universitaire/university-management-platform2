@@ -2,44 +2,63 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { directorService } from "../services/directorService";
+import { departementService } from "../services/adminServices";
 import { 
-  LayoutDashboard, 
-  Calendar, 
-  Plus, 
-  Eye, 
-  Users, 
-  Building2, 
-  MessageSquare, 
-  BarChart3, 
-  FileText, 
-  LogOut, 
-  User, 
-  X,
-  Edit
+  Edit,
+  User,
+  LogOut
 } from 'lucide-react';
+
+// Import components for inline rendering
+import MySchedule from './MySchedule';
+import MessagingPage from './MessagingPage';
+import TeacherScheduleViewer from './TeacherScheduleViewer';
+import RoomScheduleViewer from './RoomScheduleViewer';
+
+// Import DirectorSidebar
+import DirectorSidebar from './DirectorSidebar';
 
 const DirectorDashboard = () => {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showProfile, setShowProfile] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [userDepartement, setUserDepartement] = useState(null);
   const [profileData, setProfileData] = useState({
     prenom: user?.prenom || "",
     nom: user?.nom || "",
     email: user?.email || "",
-    telephone: user?.telephone || "",
-    departement: user?.departement || "",
-    specialite: user?.specialite || "",
+    cin: user?.cin || "",
   });
 
   useEffect(() => {
     console.log('🚀 DirectorDashboard useEffect déclenché');
     console.log('👤 Utilisateur:', user);
     loadDashboardData();
-  }, []);
+    loadUserDepartement();
+  }, [user]);
+
+  const loadUserDepartement = async () => {
+    // Essayer d'abord user.departement.id, puis user.departementId
+    const departementId = user?.departement?.id || user?.departementId;
+    
+    if (departementId) {
+      try {
+        console.log('🔄 Chargement du département utilisateur avec ID:', departementId);
+        const departement = await departementService.getById(departementId);
+        console.log('✅ Département chargé:', departement);
+        setUserDepartement(departement);
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement du département:', error);
+        setUserDepartement(null);
+      }
+    } else {
+      console.log('⚠️ Aucun ID de département trouvé pour l\'utilisateur');
+      setUserDepartement(null);
+    }
+  };
 
   const loadDashboardData = async () => {
     console.log('🔄 Chargement des données du dashboard directeur...');
@@ -100,7 +119,7 @@ const DirectorDashboard = () => {
       case "dashboard":
         break;
       case "mySchedule":
-        navigate("/my-schedule");
+        // navigate("/my-schedule");
         break;
       case "createSchedule":
         navigate("/schedule-builder");
@@ -109,10 +128,10 @@ const DirectorDashboard = () => {
         navigate("/schedule-viewer");
         break;
       case "teacherSchedules":
-        navigate("/teacher-schedules");
+        // navigate("/teacher-schedules");
         break;
       case "roomSchedules":
-        navigate("/room-schedules");
+        // navigate("/room-schedules");
         break;
       case "manageUsers":
         navigate("/admin");
@@ -124,7 +143,10 @@ const DirectorDashboard = () => {
         navigate("/admin?tab=etudiants");
         break;
       case "messaging":
-        navigate('/messagerie');
+        // navigate('/messagerie');
+        break;
+      case "profile":
+        // Le profil s'ouvre dans le contenu principal
         break;
       case "reports":
         alert("Ouverture des rapports...");
@@ -142,7 +164,7 @@ const DirectorDashboard = () => {
 
   const handleProfileUpdate = async () => {
     if (!profileData.prenom || !profileData.nom || !profileData.email) {
-      alert("Veuillez remplir tous les champs obligatoires");
+      // Validation silencieuse - les champs requis sont marqués avec *
       return;
     }
 
@@ -154,25 +176,157 @@ const DirectorDashboard = () => {
       });
 
       if (response.success) {
-        alert("Profil mis à jour avec succès!");
         setEditingProfile(false);
         setProfileData({
           ...profileData,
           prenom: response.user.prenom,
           nom: response.user.nom,
         });
+        // Mise à jour réussie - pas d'alert
       } else {
-        alert(response.message || "Erreur lors de la mise à jour du profil");
+        // Erreur silencieuse - l'utilisateur voit que rien ne change
+        console.error("Erreur lors de la mise à jour du profil:", response.message);
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour du profil:", error);
-      alert("Erreur lors de la mise à jour du profil");
+      // Erreur silencieuse
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
+  // Rendu de la page Profil
+  const renderProfile = () => {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* En-tête du profil */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
+            <div className="flex items-center gap-6">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center">
+                <User size={48} className="text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold">{user?.prenom} {user?.nom}</h2>
+                <p className="text-blue-100 mt-1">Directeur de Département</p>
+                <p className="text-blue-100 text-sm mt-1">{user?.email}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Contenu du profil */}
+          <div className="p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">Informations personnelles</h3>
+              {!editingProfile && (
+                <button
+                  onClick={() => setEditingProfile(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Edit size={18} />
+                  Modifier
+                </button>
+              )}
+            </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
+                  <input
+                    type="text"
+                    name="nom"
+                    value={profileData.nom}
+                    onChange={(e) => setProfileData({ ...profileData, nom: e.target.value })}
+                    disabled={!editingProfile}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
+                  <input
+                    type="text"
+                    name="prenom"
+                    value={profileData.prenom}
+                    onChange={(e) => setProfileData({ ...profileData, prenom: e.target.value })}
+                    disabled={!editingProfile}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={profileData.email}
+                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                    disabled={!editingProfile}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">CIN</label>
+                  <input
+                    type="text"
+                    name="cin"
+                    value={profileData.cin}
+                    onChange={(e) => setProfileData({ ...profileData, cin: e.target.value })}
+                    maxLength="8"
+                    disabled={!editingProfile}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Département</label>
+                  <input
+                    type="text"
+                    value={userDepartement?.nom || "Chargement..."}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rôle</label>
+                  <input
+                    type="text"
+                    value="Directeur de Département"
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                  />
+                </div>
+              </div>            {editingProfile && (
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleProfileUpdate();
+                  }}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  Enregistrer les modifications
+                </button>
+                <button
+                  onClick={() => setEditingProfile(false)}
+                  className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                >
+                  Annuler
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const getStatColorClasses = (color) => {
@@ -210,166 +364,7 @@ const DirectorDashboard = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white flex flex-col">
-        {/* Logo */}
-        <div className="p-4 border-b border-blue-700">
-          <h1 className="text-xl font-bold">ISET Tozeur</h1>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
-          {/* Menu Principal */}
-          <div>
-            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Menu Principal</div>
-            <button
-              onClick={() => handleAction('dashboard')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                activeNav === 'dashboard' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <LayoutDashboard size={20} />
-              <span className="text-sm font-medium">Tableau de bord</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('mySchedule')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
-                activeNav === 'mySchedule' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <Calendar size={20} />
-              <span className="text-sm font-medium">Mon Emploi du Temps</span>
-            </button>
-          </div>
-
-          {/* Emplois du Temps */}
-          <div>
-            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Emplois du Temps</div>
-            <button
-              onClick={() => handleAction('createSchedule')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                activeNav === 'createSchedule' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <Plus size={20} />
-              <span className="text-sm font-medium">Créer emploi du temps</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('viewSchedules')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
-                activeNav === 'viewSchedules' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <Eye size={20} />
-              <span className="text-sm font-medium">Voir emplois classes</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('teacherSchedules')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
-                activeNav === 'teacherSchedules' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <Users size={20} />
-              <span className="text-sm font-medium">Emplois enseignants</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('roomSchedules')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
-                activeNav === 'roomSchedules' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <Building2 size={20} />
-              <span className="text-sm font-medium">Emplois salles</span>
-            </button>
-          </div>
-
-          {/* Gestion */}
-          <div>
-            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Gestion</div>
-            <button
-              onClick={() => handleAction('manageTeachers')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                activeNav === 'manageTeachers' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <Users size={20} />
-              <span className="text-sm font-medium">Gérer enseignants</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('manageStudents')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
-                activeNav === 'manageStudents' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <Users size={20} />
-              <span className="text-sm font-medium">Gérer étudiants</span>
-            </button>
-          </div>
-
-          {/* Outils */}
-          <div>
-            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Outils</div>
-            <button
-              onClick={() => handleAction('messaging')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                activeNav === 'messaging' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <MessageSquare size={20} />
-              <span className="text-sm font-medium">Messagerie</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('reports')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
-                activeNav === 'reports' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <BarChart3 size={20} />
-              <span className="text-sm font-medium">Rapports</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('evaluations')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
-                activeNav === 'evaluations' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
-              }`}
-            >
-              <FileText size={20} />
-              <span className="text-sm font-medium">Évaluations</span>
-            </button>
-          </div>
-        </nav>
-
-        {/* User Profile at Bottom */}
-        <div className="p-4 border-t border-blue-700">
-          <div className="mb-3 pb-3 border-b border-blue-700">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
-                {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-semibold truncate">
-                  {user?.prenom} {user?.nom}
-                </p>
-                <p className="text-xs text-blue-300 truncate">Chef de Département</p>
-              </div>
-            </div>
-          </div>
-          
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-          >
-            <LogOut size={20} />
-            <span className="text-sm font-medium">Déconnexion</span>
-          </button>
-        </div>
-      </aside>
+      <DirectorSidebar onDashboardAction={handleAction} />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
@@ -377,23 +372,39 @@ const DirectorDashboard = () => {
         <header className="bg-white shadow-sm border-b border-gray-200 px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Tableau de bord</h2>
-              <p className="text-sm text-gray-500">Espace Directeur de Département</p>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {activeNav === 'dashboard' && 'Tableau de bord'}
+                {activeNav === 'mySchedule' && 'Mon Emploi du Temps'}
+                {activeNav === 'messaging' && 'Messagerie'}
+                {activeNav === 'teacherSchedules' && 'Emplois des Enseignants'}
+                {activeNav === 'roomSchedules' && 'Emplois des Salles'}
+                {activeNav === 'profile' && 'Mon Profil'}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {activeNav === 'dashboard' && 'Espace Directeur de Département'}
+                {activeNav === 'mySchedule' && 'Consultez votre planning hebdomadaire'}
+                {activeNav === 'messaging' && 'Gérez vos messages et communications'}
+                {activeNav === 'teacherSchedules' && 'Consultez les emplois du temps des enseignants'}
+                {activeNav === 'roomSchedules' && 'Consultez les emplois du temps des salles'}
+                {activeNav === 'profile' && 'Gérez vos informations personnelles'}
+              </p>
             </div>
             <button
-              onClick={() => setShowProfile(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={logout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
-              <User size={18} />
-              Profil
+              <LogOut size={18} />
+              Déconnexion
             </button>
           </div>
         </header>
 
         {/* Main Body */}
         <main className="p-8">
-          {/* Stats Grid with Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {activeNav === 'dashboard' && (
+            <>
+              {/* Stats Grid with Charts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {dashboardData?.stats.map((stat, index) => {
               // Calculer un pourcentage pour la barre de progression (simule une tendance)
               const percentage = stat.label === "Taux de réussite" 
@@ -460,149 +471,16 @@ const DirectorDashboard = () => {
               );
             })}
           </div>
+            </>
+          )}
 
-
+          {activeNav === 'mySchedule' && <MySchedule />}
+          {activeNav === 'messaging' && <MessagingPage />}
+          {activeNav === 'teacherSchedules' && <TeacherScheduleViewer />}
+          {activeNav === 'roomSchedules' && <RoomScheduleViewer />}
+          {activeNav === 'profile' && renderProfile()}
         </main>
       </div>
-
-      {/* Profile Modal */}
-      {showProfile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white relative">
-              <button
-                onClick={() => setShowProfile(false)}
-                className="absolute top-4 right-4 text-white hover:text-gray-200"
-              >
-                <X size={24} />
-              </button>
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold text-2xl">
-                  {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold">{user?.prenom} {user?.nom}</h3>
-                  <p className="text-blue-100">Directeur de Département</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="p-6">
-              {editingProfile ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleProfileUpdate();
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prénom <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.prenom}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, prenom: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nom <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.nom}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, nom: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={profileData.email}
-                      disabled
-                      title="L'email ne peut pas être modifié"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="submit"
-                      className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                    >
-                      Sauvegarder
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingProfile(false)}
-                      className="flex-1 px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="border-b border-gray-200 pb-3">
-                    <span className="text-sm text-gray-600">Prénom:</span>
-                    <p className="text-lg font-semibold text-gray-800">{user?.prenom}</p>
-                  </div>
-
-                  <div className="border-b border-gray-200 pb-3">
-                    <span className="text-sm text-gray-600">Nom:</span>
-                    <p className="text-lg font-semibold text-gray-800">{user?.nom}</p>
-                  </div>
-
-                  <div className="border-b border-gray-200 pb-3">
-                    <span className="text-sm text-gray-600">Email:</span>
-                    <p className="text-lg font-semibold text-gray-800">{user?.email}</p>
-                  </div>
-
-                  <div className="border-b border-gray-200 pb-3">
-                    <span className="text-sm text-gray-600">Département:</span>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {user?.departement?.nom || "Non spécifié"}
-                    </p>
-                  </div>
-
-                  <div className="pb-3">
-                    <span className="text-sm text-gray-600">Rôle:</span>
-                    <p className="mt-1">
-                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                        Directeur de Département
-                      </span>
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setEditingProfile(true)}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    <Edit size={18} />
-                    Modifier le profil
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
