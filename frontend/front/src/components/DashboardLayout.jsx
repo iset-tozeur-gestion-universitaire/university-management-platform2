@@ -127,7 +127,7 @@ const DashboardLayout = () => {
               <p className="text-sm font-semibold truncate">
                 {user?.prenom} {user?.nom}
               </p>
-              <p className="text-xs text-blue-300 truncate">Étudiant</p>
+              <p className="text-xs text-blue-300 truncate">{user?.email}</p>
             </div>
           </div>
         </div>
