@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import './TeacherDashboard.css';
+import { 
+  LayoutDashboard, 
+  Calendar, 
+  BookOpen, 
+  Users, 
+  FileText, 
+  MessageSquare, 
+  LogOut, 
+  User, 
+  X,
+  Edit,
+  BarChart3,
+  GraduationCap
+} from 'lucide-react';
 
 const TeacherDashboard = () => {
   const { user, logout, updateUser } = useAuth();
@@ -10,6 +23,7 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [activeNav, setActiveNav] = useState("dashboard");
   const [profileData, setProfileData] = useState({
     prenom: user?.prenom || "",
     nom: user?.nom || "",
@@ -31,29 +45,25 @@ const TeacherDashboard = () => {
           { 
             label: "Mes cours", 
             value: "4", 
-            icon: "📚",
-            color: "#1e5ba8",
+            color: "blue",
             description: "Cours actifs"
           },
           { 
             label: "Étudiants", 
             value: "156", 
-            icon: "👥",
-            color: "#48bb78",
+            color: "green",
             description: "Total inscrits"
           },
           { 
             label: "Évaluations", 
             value: "12", 
-            icon: "📝",
-            color: "#ed8936",
+            color: "orange",
             description: "En attente"
           },
           { 
             label: "Réussite", 
             value: "87%", 
-            icon: "📊",
-            color: "#5eb3b7",
+            color: "purple",
             description: "Taux moyen"
           },
         ],
@@ -61,30 +71,18 @@ const TeacherDashboard = () => {
           { 
             title: "Mon Emploi du Temps", 
             description: "Consulter mon planning hebdomadaire",
-            icon: "📅", 
             action: "viewSchedule",
-            color: "#1e5ba8"
           },
           { 
             title: "Évaluer les Étudiants", 
             description: "Saisir les notes et évaluations",
-            icon: "📝", 
             action: "gradeStudents",
-            color: "#ed8936"
           },
           { 
             title: "Mes Statistiques", 
             description: "Analyser les performances",
-            icon: "📊", 
             action: "statistics",
-            color: "#5eb3b7"
           },
-        ],
-        otherActions: [
-          { label: "Gérer mes cours", icon: "📚", action: "manageCourses" },
-          { label: "Messagerie", icon: "💬", action: "messaging" },
-          { label: "Ressources pédagogiques", icon: "📖", action: "resources" },
-          { label: "Mon profil", icon: "👤", action: "profile" },
         ],
       };
       setDashboardData(data);
@@ -93,7 +91,10 @@ const TeacherDashboard = () => {
   };
 
   const handleAction = (action) => {
+    setActiveNav(action);
     switch (action) {
+      case "dashboard":
+        break;
       case "manageCourses":
         alert("Ouverture de la gestion des cours...");
         break;
@@ -130,13 +131,12 @@ const TeacherDashboard = () => {
       const response = await updateUser({
         nom: profileData.nom,
         prenom: profileData.prenom,
-        cin: user.cin, // CIN ne peut pas être modifié
+        cin: user.cin,
       });
 
       if (response.success) {
         alert("Profil mis à jour avec succès!");
         setEditingProfile(false);
-        // Mettre à jour les données du profil avec les nouvelles valeurs
         setProfileData({
           ...profileData,
           prenom: response.user.prenom,
@@ -158,209 +158,405 @@ const TeacherDashboard = () => {
     }
   };
 
+  const getStatColorClasses = (color) => {
+    const colors = {
+      blue: "from-blue-500 to-blue-600",
+      green: "from-green-500 to-green-600",
+      purple: "from-purple-500 to-purple-600",
+      orange: "from-orange-500 to-orange-600"
+    };
+    return colors[color] || colors.blue;
+  };
+
   if (loading) {
     return (
-      <div className="teacher-dashboard-loading">
-        <div className="elegant-spinner"></div>
-        <p>Chargement...</p>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="teacher-dashboard">
-      {/* Header */}
-      <header className="teacher-header">
-        <div className="header-container">
-          <div className="header-left">
-            <div className="welcome-section">
-              <h1 className="greeting">Bonjour, {user?.prenom}</h1>
-              <p className="subtitle">Bienvenue dans votre espace enseignant</p>
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <aside className="w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white flex flex-col">
+        {/* Logo */}
+        <div className="p-4 border-b border-blue-700">
+          <h1 className="text-xl font-bold">ISET Tozeur</h1>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+          {/* Menu Principal */}
+          <div>
+            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Menu Principal</div>
+            <button
+              onClick={() => handleAction('dashboard')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeNav === 'dashboard' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
+            >
+              <LayoutDashboard size={20} />
+              <span className="text-sm font-medium">Tableau de bord</span>
+            </button>
+
+            <button
+              onClick={() => handleAction('viewSchedule')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'viewSchedule' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
+            >
+              <Calendar size={20} />
+              <span className="text-sm font-medium">Mon Emploi du Temps</span>
+            </button>
+          </div>
+
+          {/* Cours & Étudiants */}
+          <div>
+            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Cours & Étudiants</div>
+            <button
+              onClick={() => handleAction('manageCourses')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeNav === 'manageCourses' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
+            >
+              <BookOpen size={20} />
+              <span className="text-sm font-medium">Mes cours</span>
+            </button>
+
+            <button
+              onClick={() => handleAction('gradeStudents')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'gradeStudents' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
+            >
+              <FileText size={20} />
+              <span className="text-sm font-medium">Évaluations</span>
+            </button>
+
+            <button
+              onClick={() => handleAction('statistics')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'statistics' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
+            >
+              <BarChart3 size={20} />
+              <span className="text-sm font-medium">Statistiques</span>
+            </button>
+          </div>
+
+          {/* Outils */}
+          <div>
+            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Outils</div>
+            <button
+              onClick={() => handleAction('messaging')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeNav === 'messaging' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
+            >
+              <MessageSquare size={20} />
+              <span className="text-sm font-medium">Messagerie</span>
+            </button>
+
+            <button
+              onClick={() => handleAction('resources')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'resources' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
+            >
+              <GraduationCap size={20} />
+              <span className="text-sm font-medium">Ressources</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* User Profile at Bottom */}
+        <div className="p-4 border-t border-blue-700">
+          <div className="mb-3 pb-3 border-b border-blue-700">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-semibold truncate">
+                  {user?.prenom} {user?.nom}
+                </p>
+                <p className="text-xs text-blue-300 truncate">Enseignant</p>
+              </div>
             </div>
           </div>
-          <div className="header-right">
-            <button className="header-btn profile-btn" onClick={() => setShowProfile(true)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              <span>Profil</span>
-            </button>
-            <button className="header-btn logout-btn" onClick={handleLogout}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-              <span>Déconnexion</span>
+          
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+          >
+            <LogOut size={20} />
+            <span className="text-sm font-medium">Déconnexion</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Bonjour, {user?.prenom}</h2>
+              <p className="text-sm text-gray-500">Bienvenue dans votre espace enseignant</p>
+            </div>
+            <button
+              onClick={() => setShowProfile(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <User size={18} />
+              Profil
             </button>
           </div>
-        </div>
-      </header>
+        </header>
+
+        {/* Main Body */}
+        <main className="p-8">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {dashboardData?.stats.map((stat, index) => {
+              const percentage = Math.min(95, parseInt(stat.value) * 2 || 75);
+              
+              // Icônes professionnelles selon le type de stat
+              const getIcon = () => {
+                switch(stat.label) {
+                  case "Mes cours":
+                    return <BookOpen className="text-white" size={24} />;
+                  case "Étudiants":
+                    return <Users className="text-white" size={24} />;
+                  case "Évaluations":
+                    return <FileText className="text-white" size={24} />;
+                  case "Réussite":
+                    return <BarChart3 className="text-white" size={24} />;
+                  default:
+                    return <LayoutDashboard className="text-white" size={24} />;
+                }
+              };
+              
+              return (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all group"
+                >
+                  {/* Header avec icône professionnelle */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getStatColorClasses(stat.color)} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+                      {getIcon()}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-green-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      +12%
+                    </div>
+                  </div>
+
+                  {/* Valeur principale */}
+                  <div className="mb-4">
+                    <div className="text-sm font-medium text-gray-600 mb-1">{stat.label}</div>
+                    <div className="text-4xl font-bold text-gray-900 mb-1">
+                      {stat.value}
+                    </div>
+                    <div className="text-xs text-gray-500">{stat.description}</div>
+                  </div>
+
+                  {/* Barre de progression */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>Progression</span>
+                      <span className="font-semibold">{percentage}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full bg-gradient-to-r ${getStatColorClasses(stat.color)} transition-all duration-1000 rounded-full`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Mini graphique sparkline */}
+                  <div className="flex items-end justify-between h-8 gap-1">
+                    {[65, 70, 68, 75, 80, 78, 85, 90, 88, percentage].map((height, i) => (
+                      <div 
+                        key={i}
+                        className={`flex-1 bg-gradient-to-t ${getStatColorClasses(stat.color)} rounded-t opacity-30 hover:opacity-60 transition-all`}
+                        style={{ height: `${(height / 100) * 32}px` }}
+                      ></div>
+                    ))}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${getStatColorClasses(stat.color)}`}></div>
+                      Actif
+                    </span>
+                    <span>Mis à jour</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+
+        </main>
+      </div>
 
       {/* Profile Modal */}
       {showProfile && (
-        <div className="elegant-modal-overlay" onClick={() => setShowProfile(false)}>
-          <div className="elegant-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowProfile(false)}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-            
-            <div className="modal-header">
-              <div className="profile-avatar">
-                {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white relative">
+              <button
+                onClick={() => setShowProfile(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200"
+              >
+                <X size={24} />
+              </button>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold text-2xl">
+                  {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold">{user?.prenom} {user?.nom}</h3>
+                  <p className="text-blue-100">Enseignant</p>
+                </div>
               </div>
-              <h3>Informations du profil</h3>
             </div>
 
-            {editingProfile ? (
-              <div className="modal-body">
-                <div className="elegant-form">
-                  <div className="form-group">
-                    <label>Prénom</label>
+            {/* Body */}
+            <div className="p-6">
+              {editingProfile ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleProfileUpdate();
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prénom <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={profileData.prenom}
-                      onChange={(e) => setProfileData({ ...profileData, prenom: e.target.value })}
-                      placeholder="Votre prénom"
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, prenom: e.target.value })
+                      }
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Nom</label>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nom <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={profileData.nom}
-                      onChange={(e) => setProfileData({ ...profileData, nom: e.target.value })}
-                      placeholder="Votre nom"
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, nom: e.target.value })
+                      }
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Email</label>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       value={profileData.email}
-                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                      placeholder="votre.email@exemple.com"
+                      disabled
+                      title="L'email ne peut pas être modifié"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Téléphone</label>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Téléphone
+                    </label>
                     <input
                       type="tel"
                       value={profileData.telephone}
-                      onChange={(e) => setProfileData({ ...profileData, telephone: e.target.value })}
-                      placeholder="+216 XX XXX XXX"
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, telephone: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                </div>
-                <div className="modal-actions">
-                  <button className="btn-primary" onClick={handleProfileUpdate}>
-                    Enregistrer
-                  </button>
-                  <button className="btn-secondary" onClick={() => setEditingProfile(false)}>
-                    Annuler
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="modal-body">
-                <div className="profile-info">
-                  <div className="info-item">
-                    <span className="info-label">Nom complet</span>
-                    <span className="info-value">{user?.prenom} {user?.nom}</span>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      Enregistrer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingProfile(false)}
+                      className="flex-1 px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                    >
+                      Annuler
+                    </button>
                   </div>
-                  <div className="info-item">
-                    <span className="info-label">Email</span>
-                    <span className="info-value">{user?.email}</span>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="border-b border-gray-200 pb-3">
+                    <span className="text-sm text-gray-600">Nom complet</span>
+                    <p className="text-lg font-semibold text-gray-800">{user?.prenom} {user?.nom}</p>
                   </div>
-                  <div className="info-item">
-                    <span className="info-label">Rôle</span>
-                    <span className="info-value badge-teacher">Enseignant</span>
+
+                  <div className="border-b border-gray-200 pb-3">
+                    <span className="text-sm text-gray-600">Email</span>
+                    <p className="text-lg font-semibold text-gray-800">{user?.email}</p>
                   </div>
-                  <div className="info-item">
-                    <span className="info-label">Département</span>
-                    <span className="info-value">{user?.departement?.nom || "Non spécifié"}</span>
+
+                  <div className="border-b border-gray-200 pb-3">
+                    <span className="text-sm text-gray-600">Rôle</span>
+                    <p className="mt-1">
+                      <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                        Enseignant
+                      </span>
+                    </p>
                   </div>
-                </div>
-                <div className="modal-actions">
-                  <button className="btn-primary" onClick={() => setEditingProfile(true)}>
+
+                  <div className="pb-3">
+                    <span className="text-sm text-gray-600">Département</span>
+                    <p className="text-lg font-semibold text-gray-800">
+                      {user?.departement?.nom || "Non spécifié"}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setEditingProfile(true)}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    <Edit size={18} />
                     Modifier le profil
                   </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
-
-      {/* Main Content */}
-      <div className="teacher-content">
-        {/* Stats Cards */}
-        <section className="stats-section">
-          <div className="stats-grid">
-            {dashboardData?.stats.map((stat, index) => (
-              <div key={index} className="stat-card" style={{ borderLeftColor: stat.color }}>
-                <div className="stat-icon" style={{ color: stat.color }}>
-                  {stat.icon}
-                </div>
-                <div className="stat-details">
-                  <div className="stat-value">{stat.value}</div>
-                  <div className="stat-label">{stat.label}</div>
-                  <div className="stat-description">{stat.description}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Quick Actions */}
-        <section className="quick-actions-section">
-          <h2 className="section-title">Actions Rapides</h2>
-          <div className="quick-actions-grid">
-            {dashboardData?.quickActions.map((action, index) => (
-              <div 
-                key={index} 
-                className="quick-action-card"
-                onClick={() => handleAction(action.action)}
-                style={{ '--card-color': action.color }}
-              >
-                <div className="action-icon-wrapper" style={{ backgroundColor: action.color }}>
-                  <span className="action-icon">{action.icon}</span>
-                </div>
-                <div className="action-content">
-                  <h3 className="action-title">{action.title}</h3>
-                  <p className="action-description">{action.description}</p>
-                </div>
-                <div className="action-arrow">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Other Actions */}
-        <section className="other-actions-section">
-          <h2 className="section-title">Autres Services</h2>
-          <div className="other-actions-grid">
-            {dashboardData?.otherActions.map((action, index) => (
-              <button
-                key={index}
-                className="other-action-btn"
-                onClick={() => handleAction(action.action)}
-              >
-                <span className="btn-icon">{action.icon}</span>
-                <span className="btn-label">{action.label}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      </div>
     </div>
   );
 };

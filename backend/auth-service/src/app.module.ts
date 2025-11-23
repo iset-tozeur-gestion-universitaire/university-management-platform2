@@ -30,6 +30,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
           user: process.env.MAIL_USER,
           pass: process.env.MAIL_PASS,
         },
+        logger: false, // Désactiver les logs du transporter
       },
       defaults: {
         from: '"University Platform" <no-reply@university.com>',
