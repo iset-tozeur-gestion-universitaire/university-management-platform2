@@ -48,7 +48,7 @@ const DashboardLayout = () => {
       description: "Messages et notifications",
       icon: "✉️",
       path: "/messagerie",
-      badge: "7"
+      
     },
     { 
       label: "Bibliothèque", 

@@ -2,7 +2,21 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { directorService } from "../services/directorService";
-import "./DirectorDashboard.css";
+import { 
+  LayoutDashboard, 
+  Calendar, 
+  Plus, 
+  Eye, 
+  Users, 
+  Building2, 
+  MessageSquare, 
+  BarChart3, 
+  FileText, 
+  LogOut, 
+  User, 
+  X,
+  Edit
+} from 'lucide-react';
 
 const DirectorDashboard = () => {
   const { user, logout, updateUser } = useAuth();
@@ -31,17 +45,16 @@ const DirectorDashboard = () => {
     console.log('🔄 Chargement des données du dashboard directeur...');
     
     try {
-      // Récupérer les vraies statistiques depuis la base de données
       const stats = await directorService.getStats();
       console.log('✅ Statistiques récupérées:', stats);
 
       const data = {
         title: "Espace Directeur de Département",
         stats: [
-          { label: "Enseignants", value: stats.enseignants.toString(), icon: "👨‍🏫", color: "primary" },
-          { label: "Étudiants", value: stats.etudiants.toString(), icon: "👥", color: "turquoise" },
-          { label: "Classes", value: stats.classes.toString(), icon: "📚", color: "yellow" },
-          { label: "Taux de réussite", value: `${stats.tauxReussite}%`, icon: "📊", color: "primary" },
+          { label: "Enseignants", value: stats.enseignants.toString(), icon: "👨‍🏫", color: "blue" },
+          { label: "Étudiants", value: stats.etudiants.toString(), icon: "👥", color: "green" },
+          { label: "Classes", value: stats.classes.toString(), icon: "📚", color: "purple" },
+          { label: "Taux de réussite", value: `${stats.tauxReussite}%`, icon: "📊", color: "orange" },
         ],
         actions: [
           { label: "👥 Gérer utilisateurs", description: "Administration des comptes utilisateurs", action: "manageUsers" },
@@ -58,14 +71,13 @@ const DirectorDashboard = () => {
       setLoading(false);
     } catch (error) {
       console.error('❌ Erreur lors du chargement des stats:', error);
-      // En cas d'erreur, afficher des données par défaut
       const data = {
         title: "Espace Directeur de Département",
         stats: [
-          { label: "Enseignants", value: "—", icon: "👨‍🏫", color: "primary" },
-          { label: "Étudiants", value: "—", icon: "👥", color: "turquoise" },
-          { label: "Classes", value: "—", icon: "📚", color: "yellow" },
-          { label: "Taux de réussite", value: "—", icon: "📊", color: "primary" },
+          { label: "Enseignants", value: "—", icon: "👨‍🏫", color: "blue" },
+          { label: "Étudiants", value: "—", icon: "👥", color: "green" },
+          { label: "Classes", value: "—", icon: "📚", color: "purple" },
+          { label: "Taux de réussite", value: "—", icon: "📊", color: "orange" },
         ],
         actions: [
           { label: "👥 Gérer utilisateurs", description: "Administration des comptes utilisateurs", action: "manageUsers" },
@@ -86,7 +98,6 @@ const DirectorDashboard = () => {
     setActiveNav(action);
     switch (action) {
       case "dashboard":
-        // Stay on dashboard
         break;
       case "mySchedule":
         navigate("/my-schedule");
@@ -107,10 +118,10 @@ const DirectorDashboard = () => {
         navigate("/admin");
         break;
       case "manageTeachers":
-        alert("Ouverture de la gestion des enseignants...");
+        navigate("/admin?tab=enseignants");
         break;
       case "manageStudents":
-        alert("Ouverture de la gestion des étudiants...");
+        navigate("/admin?tab=etudiants");
         break;
       case "messaging":
         navigate('/messagerie');
@@ -139,13 +150,12 @@ const DirectorDashboard = () => {
       const response = await updateUser({
         nom: profileData.nom,
         prenom: profileData.prenom,
-        cin: user.cin, // CIN ne peut pas être modifié
+        cin: user.cin,
       });
 
       if (response.success) {
         alert("Profil mis à jour avec succès!");
         setEditingProfile(false);
-        // Mettre à jour les données du profil avec les nouvelles valeurs
         setProfileData({
           ...profileData,
           prenom: response.user.prenom,
@@ -165,343 +175,431 @@ const DirectorDashboard = () => {
     navigate("/");
   };
 
-  console.log('🎨 Rendu DirectorDashboard - loading:', loading, 'dashboardData:', dashboardData);
+  const getStatColorClasses = (color) => {
+    const colors = {
+      blue: "from-blue-500 to-blue-600",
+      green: "from-green-500 to-green-600",
+      purple: "from-purple-500 to-purple-600",
+      orange: "from-orange-500 to-orange-600"
+    };
+    return colors[color] || colors.blue;
+  };
 
   if (loading) {
-    console.log('⏳ Affichage de l\'écran de chargement');
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Chargement de l'espace directeur...</p>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement de l'espace directeur...</p>
+        </div>
       </div>
     );
   }
 
   if (!dashboardData) {
-    console.log('❌ Aucune donnée de dashboard disponible');
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Erreur de chargement des données...</p>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-red-600">Erreur de chargement des données...</p>
+        </div>
       </div>
     );
   }
 
-  console.log('✅ Rendu du dashboard avec', dashboardData.actions?.length, 'actions');
-
   return (
-    <div className="director-dashboard">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo">RÉSEAU</div>
+      <aside className="w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white flex flex-col">
+        {/* Logo */}
+        <div className="p-4 border-b border-blue-700">
+          <h1 className="text-xl font-bold">ISET Tozeur</h1>
         </div>
 
-        <div className="sidebar-user">
-          <div className="sidebar-user-info">
-            <div className="sidebar-avatar">
-              {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
-            </div>
-            <div className="sidebar-user-details">
-              <h3>{user?.prenom} {user?.nom}</h3>
-              <p>Directeur de Département</p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <div className="sidebar-nav-section">
-            <div className="sidebar-nav-title">Menu Principal</div>
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+          {/* Menu Principal */}
+          <div>
+            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Menu Principal</div>
+            <button
               onClick={() => handleAction('dashboard')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeNav === 'dashboard' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-              <span className="sidebar-nav-label">Tableau de bord</span>
-            </div>
+              <LayoutDashboard size={20} />
+              <span className="text-sm font-medium">Tableau de bord</span>
+            </button>
 
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'mySchedule' ? 'active' : ''}`}
+            <button
               onClick={() => handleAction('mySchedule')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'mySchedule' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              <span className="sidebar-nav-label">Mon Emploi du Temps</span>
-            </div>
+              <Calendar size={20} />
+              <span className="text-sm font-medium">Mon Emploi du Temps</span>
+            </button>
           </div>
 
-          <div className="sidebar-nav-section">
-            <div className="sidebar-nav-title">Gestion</div>
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'createSchedule' ? 'active' : ''}`}
+          {/* Emplois du Temps */}
+          <div>
+            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Emplois du Temps</div>
+            <button
               onClick={() => handleAction('createSchedule')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeNav === 'createSchedule' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span className="sidebar-nav-label">Créer emploi du temps</span>
-            </div>
+              <Plus size={20} />
+              <span className="text-sm font-medium">Créer emploi du temps</span>
+            </button>
 
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'viewSchedules' ? 'active' : ''}`}
+            <button
               onClick={() => handleAction('viewSchedules')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'viewSchedules' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <span className="sidebar-nav-label">Voir emplois classes</span>
-            </div>
+              <Eye size={20} />
+              <span className="text-sm font-medium">Voir emplois classes</span>
+            </button>
 
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'teacherSchedules' ? 'active' : ''}`}
+            <button
               onClick={() => handleAction('teacherSchedules')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'teacherSchedules' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span className="sidebar-nav-label">Emplois enseignants</span>
-            </div>
+              <Users size={20} />
+              <span className="text-sm font-medium">Emplois enseignants</span>
+            </button>
 
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'roomSchedules' ? 'active' : ''}`}
+            <button
               onClick={() => handleAction('roomSchedules')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'roomSchedules' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="21" x2="9" y2="9"></line>
-              </svg>
-              <span className="sidebar-nav-label">Emplois salles</span>
-            </div>
+              <Building2 size={20} />
+              <span className="text-sm font-medium">Emplois salles</span>
+            </button>
           </div>
 
-          <div className="sidebar-nav-section">
-            <div className="sidebar-nav-title">Gestion</div>
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'manageTeachers' ? 'active' : ''}`}
+          {/* Gestion */}
+          <div>
+            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Gestion</div>
+            <button
               onClick={() => handleAction('manageTeachers')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeNav === 'manageTeachers' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span className="sidebar-nav-label">Gérer enseignants</span>
-            </div>
+              <Users size={20} />
+              <span className="text-sm font-medium">Gérer enseignants</span>
+            </button>
 
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'manageStudents' ? 'active' : ''}`}
+            <button
               onClick={() => handleAction('manageStudents')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'manageStudents' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span className="sidebar-nav-label">Gérer étudiants</span>
-            </div>
+              <Users size={20} />
+              <span className="text-sm font-medium">Gérer étudiants</span>
+            </button>
           </div>
 
-          <div className="sidebar-nav-section">
-            <div className="sidebar-nav-title">Outils</div>
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'messaging' ? 'active' : ''}`}
+          {/* Outils */}
+          <div>
+            <div className="text-xs font-semibold text-blue-300 uppercase mb-2">Outils</div>
+            <button
               onClick={() => handleAction('messaging')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeNav === 'messaging' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <span className="sidebar-nav-label">Messagerie</span>
-            </div>
+              <MessageSquare size={20} />
+              <span className="text-sm font-medium">Messagerie</span>
+            </button>
 
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'reports' ? 'active' : ''}`}
+            <button
               onClick={() => handleAction('reports')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'reports' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-              <span className="sidebar-nav-label">Rapports</span>
-            </div>
+              <BarChart3 size={20} />
+              <span className="text-sm font-medium">Rapports</span>
+            </button>
 
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'evaluations' ? 'active' : ''}`}
+            <button
               onClick={() => handleAction('evaluations')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'evaluations' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
             >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
-              <span className="sidebar-nav-label">Évaluations</span>
-            </div>
+              <FileText size={20} />
+              <span className="text-sm font-medium">Évaluations</span>
+            </button>
           </div>
         </nav>
 
-        <div className="sidebar-footer">
-          <button className="sidebar-logout-btn" onClick={handleLogout}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            Déconnexion
+        {/* User Profile at Bottom */}
+        <div className="p-4 border-t border-blue-700">
+          <div className="mb-3 pb-3 border-b border-blue-700">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-semibold truncate">
+                  {user?.prenom} {user?.nom}
+                </p>
+                <p className="text-xs text-blue-300 truncate">Chef de Département</p>
+              </div>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+          >
+            <LogOut size={20} />
+            <span className="text-sm font-medium">Déconnexion</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="main-content">
-        <header className="main-header">
-          <h1>Tableau de bord</h1>
-          <div className="header-actions">
-            <button className="header-btn profile-btn" onClick={() => setShowProfile(true)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
+      <div className="flex-1 overflow-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Tableau de bord</h2>
+              <p className="text-sm text-gray-500">Espace Directeur de Département</p>
+            </div>
+            <button
+              onClick={() => setShowProfile(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <User size={18} />
               Profil
             </button>
           </div>
         </header>
 
-        <main className="main-body">
-          {/* Stats Grid */}
-          <div className="stats-grid">
-            {dashboardData?.stats.map((stat, index) => (
-              <div key={index} className={`stat-card stat-${stat.color}`}>
-                <div className="stat-header">
-                  <span className="stat-icon">{stat.icon}</span>
-                </div>
-                <div className="stat-body">
-                  <div className="stat-value">{stat.value}</div>
-                  <div className="stat-label">{stat.label}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Quick Actions */}
-          <div className="quick-actions">
-            <h2 className="section-title">Actions rapides</h2>
-            <div className="actions-grid">
-              {dashboardData?.actions.map((action, index) => (
+        {/* Main Body */}
+        <main className="p-8">
+          {/* Stats Grid with Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {dashboardData?.stats.map((stat, index) => {
+              // Calculer un pourcentage pour la barre de progression (simule une tendance)
+              const percentage = stat.label === "Taux de réussite" 
+                ? parseInt(stat.value) 
+                : Math.min(95, parseInt(stat.value) * 2 || 75);
+              
+              return (
                 <div
                   key={index}
-                  className="action-card"
-                  onClick={() => handleAction(action.action)}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all group"
                 >
-                  <div className="action-label">{action.label}</div>
-                  {action.description && (
-                    <div className="action-description">{action.description}</div>
-                  )}
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm font-medium text-gray-600">{stat.label}</div>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-green-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      +12%
+                    </div>
+                  </div>
+
+                  {/* Valeur principale */}
+                  <div className="mb-4">
+                    <div className="text-4xl font-bold text-gray-900 mb-1">
+                      {stat.value}
+                    </div>
+                  </div>
+
+                  {/* Barre de progression */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>Progression</span>
+                      <span className="font-semibold">{percentage}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full bg-gradient-to-r ${getStatColorClasses(stat.color)} transition-all duration-1000 rounded-full`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Mini graphique sparkline */}
+                  <div className="flex items-end justify-between h-8 gap-1">
+                    {[65, 70, 68, 75, 80, 78, 85, 90, 88, percentage].map((height, i) => (
+                      <div 
+                        key={i}
+                        className={`flex-1 bg-gradient-to-t ${getStatColorClasses(stat.color)} rounded-t opacity-30 hover:opacity-60 transition-all`}
+                        style={{ height: `${(height / 100) * 32}px` }}
+                      ></div>
+                    ))}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${getStatColorClasses(stat.color)}`}></div>
+                      Actif
+                    </span>
+                    <span>Mis à jour</span>
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
+
+
         </main>
       </div>
 
       {/* Profile Modal */}
       {showProfile && (
-        <div className="profile-modal">
-          <div className="profile-content">
-            <button
-              className="close-profile"
-              onClick={() => setShowProfile(false)}
-            >
-              ×
-            </button>
-            <h3>Informations du profil</h3>
-            {editingProfile ? (
-              <form className="profile-edit" onSubmit={(e) => { e.preventDefault(); handleProfileUpdate(); }}>
-                <div className="form-group">
-                  <label>Prénom <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    value={profileData.prenom}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, prenom: e.target.value })
-                    }
-                    required
-                  />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white relative">
+              <button
+                onClick={() => setShowProfile(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200"
+              >
+                <X size={24} />
+              </button>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold text-2xl">
+                  {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
                 </div>
-                <div className="form-group">
-                  <label>Nom <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    value={profileData.nom}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, nom: e.target.value })
-                    }
-                    required
-                  />
+                <div>
+                  <h3 className="text-2xl font-bold">{user?.prenom} {user?.nom}</h3>
+                  <p className="text-blue-100">Directeur de Département</p>
                 </div>
-                <div className="form-group">
-                  <label>Email <span className="required">*</span></label>
-                  <input
-                    type="email"
-                    value={profileData.email}
-                    disabled
-                    title="L'email ne peut pas être modifié"
-                  />
-                </div>
-                <div className="profile-actions">
-                  <button type="submit" className="btn-primary">Sauvegarder</button>
-                  <button type="button" className="btn-secondary" onClick={() => setEditingProfile(false)}>
-                    Annuler
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              {editingProfile ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleProfileUpdate();
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prénom <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={profileData.prenom}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, prenom: e.target.value })
+                      }
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nom <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={profileData.nom}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, nom: e.target.value })
+                      }
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={profileData.email}
+                      disabled
+                      title="L'email ne peut pas être modifié"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      Sauvegarder
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingProfile(false)}
+                      className="flex-1 px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="border-b border-gray-200 pb-3">
+                    <span className="text-sm text-gray-600">Prénom:</span>
+                    <p className="text-lg font-semibold text-gray-800">{user?.prenom}</p>
+                  </div>
+
+                  <div className="border-b border-gray-200 pb-3">
+                    <span className="text-sm text-gray-600">Nom:</span>
+                    <p className="text-lg font-semibold text-gray-800">{user?.nom}</p>
+                  </div>
+
+                  <div className="border-b border-gray-200 pb-3">
+                    <span className="text-sm text-gray-600">Email:</span>
+                    <p className="text-lg font-semibold text-gray-800">{user?.email}</p>
+                  </div>
+
+                  <div className="border-b border-gray-200 pb-3">
+                    <span className="text-sm text-gray-600">Département:</span>
+                    <p className="text-lg font-semibold text-gray-800">
+                      {user?.departement?.nom || "Non spécifié"}
+                    </p>
+                  </div>
+
+                  <div className="pb-3">
+                    <span className="text-sm text-gray-600">Rôle:</span>
+                    <p className="mt-1">
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        Directeur de Département
+                      </span>
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setEditingProfile(true)}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    <Edit size={18} />
+                    Modifier le profil
                   </button>
                 </div>
-              </form>
-            ) : (
-              <div className="profile-view">
-                <div className="profile-item">
-                  <span className="profile-label">Prénom:</span>
-                  <span className="profile-value">{user?.prenom}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Nom:</span>
-                  <span className="profile-value">{user?.nom}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Email:</span>
-                  <span className="profile-value">{user?.email}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Département:</span>
-                  <span className="profile-value">{user?.departement?.nom || "Non spécifié"}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Rôle:</span>
-                  <span className="profile-value">
-                    <span className="badge-role">Directeur de Département</span>
-                  </span>
-                </div>
-                <button className="btn-primary" onClick={() => setEditingProfile(true)}>
-                  Modifier le profil
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
