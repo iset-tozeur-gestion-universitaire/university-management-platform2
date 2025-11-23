@@ -118,10 +118,10 @@ const DirectorDashboard = () => {
         navigate("/admin");
         break;
       case "manageTeachers":
-        alert("Ouverture de la gestion des enseignants...");
+        navigate("/admin?tab=enseignants");
         break;
       case "manageStudents":
-        alert("Ouverture de la gestion des étudiants...");
+        navigate("/admin?tab=etudiants");
         break;
       case "messaging":
         navigate('/messagerie');
