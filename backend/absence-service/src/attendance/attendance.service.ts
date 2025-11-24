@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { Seance } from './entities/seance.entity';
 import { Presence } from './entities/presence.entity';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
+import axios from 'axios';
 
 @Injectable()
 export class AttendanceService {
@@ -90,6 +91,54 @@ export class AttendanceService {
 
       await queryRunner.manager.save(presencesToSave);
       console.log('✅ Présences enregistrées');
+
+      // 3. Créer des notifications pour les étudiants absents
+      const absentStudents = presences.filter(p => p.statut === 'absent');
+      console.log('🔔 Étudiants absents:', absentStudents.length);
+      
+      if (absentStudents.length > 0) {
+        // Récupérer les informations sur la matière et l'enseignant
+        const matiereQuery = await this.dataSource.query(
+          'SELECT nom FROM matiere WHERE id = $1',
+          [cours.matiere]
+        );
+        const enseignantQuery = await this.dataSource.query(
+          'SELECT nom, prenom FROM enseignant WHERE id = $1',
+          [enseignantId]
+        );
+
+        const matiereNom = matiereQuery[0]?.nom || 'Matière inconnue';
+        const enseignantNom = enseignantQuery[0] 
+          ? `${enseignantQuery[0].prenom} ${enseignantQuery[0].nom}` 
+          : 'Enseignant inconnu';
+
+        // Envoyer les notifications pour chaque étudiant absent
+        for (const absentStudent of absentStudents) {
+          try {
+            await axios.post(
+              'http://localhost:3002/api/notifications',
+              {
+                etudiantId: absentStudent.etudiantId,
+                type: 'absence',
+                titre: 'Absence enregistrée',
+                message: `Vous avez été marqué absent au cours de ${matiereNom} le ${new Date(date).toLocaleDateString('fr-FR')} (${cours.horaire}).`,
+                matiereNom: matiereNom,
+                date: new Date(date).toLocaleDateString('fr-FR'),
+                enseignantNom: enseignantNom,
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                }
+              }
+            );
+            console.log('✅ Notification envoyée pour étudiant:', absentStudent.etudiantId);
+          } catch (error) {
+            console.error('❌ Erreur envoi notification pour étudiant', absentStudent.etudiantId, ':', error.message);
+            // Continue même si l'envoi de notification échoue
+          }
+        }
+      }
 
       await queryRunner.commitTransaction();
       console.log('✅ Transaction commitée');
