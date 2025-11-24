@@ -2607,22 +2607,6 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
                 </button>
               </div>
             )}
-
-            {/* Bouton de déconnexion */}
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-                    logout();
-                    navigate('/login');
-                  }
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-              >
-                <LogOut size={18} />
-                Se déconnecter
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -2935,11 +2919,11 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
                 )}
               </button>
               <button 
-                onClick={loadDashboardStats}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                onClick={logout}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
               >
-                <TrendingUp size={18} />
-                Actualiser
+                <LogOut size={18} />
+                Déconnexion
               </button>
             </div>
           </div>

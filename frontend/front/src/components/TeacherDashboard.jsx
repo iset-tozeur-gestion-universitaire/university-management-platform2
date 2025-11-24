@@ -10,7 +10,6 @@ import {
   MessageSquare, 
   LogOut, 
   User, 
-  X,
   Edit,
   BarChart3,
   GraduationCap
@@ -21,7 +20,6 @@ const TeacherDashboard = () => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showProfile, setShowProfile] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [activeNav, setActiveNav] = useState("dashboard");
   const [profileData, setProfileData] = useState({
@@ -114,7 +112,7 @@ const TeacherDashboard = () => {
         alert("Ouverture des ressources pédagogiques...");
         break;
       case "profile":
-        setShowProfile(true);
+        // Le profil s'ouvre dans le contenu principal
         break;
       default:
         alert(`Action ${action} non implémentée`);
@@ -123,7 +121,7 @@ const TeacherDashboard = () => {
 
   const handleProfileUpdate = async () => {
     if (!profileData.prenom || !profileData.nom || !profileData.email) {
-      alert("Veuillez remplir tous les champs obligatoires");
+      // Validation silencieuse - les champs requis sont marqués avec *
       return;
     }
 
@@ -135,19 +133,20 @@ const TeacherDashboard = () => {
       });
 
       if (response.success) {
-        alert("Profil mis à jour avec succès!");
         setEditingProfile(false);
         setProfileData({
           ...profileData,
           prenom: response.user.prenom,
           nom: response.user.nom,
         });
+        // Mise à jour réussie - pas d'alert
       } else {
-        alert(response.message || "Erreur lors de la mise à jour du profil");
+        // Erreur silencieuse - l'utilisateur voit que rien ne change
+        console.error("Erreur lors de la mise à jour du profil:", response.message);
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour du profil:", error);
-      alert("Erreur lors de la mise à jour du profil");
+      // Erreur silencieuse
     }
   };
 
@@ -156,6 +155,143 @@ const TeacherDashboard = () => {
       logout();
       navigate("/");
     }
+  };
+
+  // Rendu de la page Profil
+  const renderProfile = () => {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* En-tête du profil */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
+            <div className="flex items-center gap-6">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center">
+                <User size={48} className="text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold">{user?.prenom} {user?.nom}</h2>
+                <p className="text-blue-100 mt-1">Enseignant</p>
+                <p className="text-blue-100 text-sm mt-1">{user?.email}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Contenu du profil */}
+          <div className="p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">Informations personnelles</h3>
+              {!editingProfile && (
+                <button
+                  onClick={() => setEditingProfile(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Edit size={18} />
+                  Modifier
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
+                <input
+                  type="text"
+                  name="nom"
+                  value={profileData.nom}
+                  onChange={(e) => setProfileData({ ...profileData, nom: e.target.value })}
+                  disabled={!editingProfile}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
+                <input
+                  type="text"
+                  name="prenom"
+                  value={profileData.prenom}
+                  onChange={(e) => setProfileData({ ...profileData, prenom: e.target.value })}
+                  disabled={!editingProfile}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={profileData.email}
+                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                  disabled={!editingProfile}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
+                <input
+                  type="tel"
+                  name="telephone"
+                  value={profileData.telephone}
+                  onChange={(e) => setProfileData({ ...profileData, telephone: e.target.value })}
+                  disabled={!editingProfile}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Département</label>
+                <input
+                  type="text"
+                  value={profileData.departement || "Chargement..."}
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Spécialité</label>
+                <input
+                  type="text"
+                  value={profileData.specialite || "Non spécifiée"}
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                />
+              </div>
+            </div>
+
+            {editingProfile && (
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleProfileUpdate();
+                  }}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  Enregistrer les modifications
+                </button>
+                <button
+                  onClick={() => setEditingProfile(false)}
+                  className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                >
+                  Annuler
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const getStatColorClasses = (color) => {
@@ -270,32 +406,32 @@ const TeacherDashboard = () => {
               <GraduationCap size={20} />
               <span className="text-sm font-medium">Ressources</span>
             </button>
+
+            <button
+              onClick={() => handleAction('profile')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mt-2 ${
+                activeNav === 'profile' ? 'bg-blue-700 shadow-lg' : 'hover:bg-blue-800'
+              }`}
+            >
+              <User size={20} />
+              <span className="text-sm font-medium">Mon Profil</span>
+            </button>
           </div>
         </nav>
 
         {/* User Profile at Bottom */}
         <div className="p-4 border-t border-blue-700">
-          <div className="mb-3 pb-3 border-b border-blue-700">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
-                {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-semibold truncate">
-                  {user?.prenom} {user?.nom}
-                </p>
-                <p className="text-xs text-blue-300 truncate">Enseignant</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+              {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-semibold truncate">
+                {user?.prenom} {user?.nom}
+              </p>
+              <p className="text-xs text-blue-300 truncate">{user?.email}</p>
             </div>
           </div>
-          
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-          >
-            <LogOut size={20} />
-            <span className="text-sm font-medium">Déconnexion</span>
-          </button>
         </div>
       </aside>
 
@@ -305,258 +441,132 @@ const TeacherDashboard = () => {
         <header className="bg-white shadow-sm border-b border-gray-200 px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Bonjour, {user?.prenom}</h2>
-              <p className="text-sm text-gray-500">Bienvenue dans votre espace enseignant</p>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {activeNav === 'dashboard' && 'Tableau de bord'}
+                {activeNav === 'viewSchedule' && 'Mon Emploi du Temps'}
+                {activeNav === 'manageCourses' && 'Mes Cours'}
+                {activeNav === 'gradeStudents' && 'Évaluations'}
+                {activeNav === 'statistics' && 'Statistiques'}
+                {activeNav === 'messaging' && 'Messagerie'}
+                {activeNav === 'resources' && 'Ressources'}
+                {activeNav === 'profile' && 'Mon Profil'}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {activeNav === 'dashboard' && 'Bienvenue dans votre espace enseignant'}
+                {activeNav === 'viewSchedule' && 'Consultez votre planning hebdomadaire'}
+                {activeNav === 'manageCourses' && 'Gérez vos cours et matières'}
+                {activeNav === 'gradeStudents' && 'Saisissez les notes et évaluations'}
+                {activeNav === 'statistics' && 'Analysez vos performances pédagogiques'}
+                {activeNav === 'messaging' && 'Gérez vos messages et communications'}
+                {activeNav === 'resources' && 'Accédez aux ressources pédagogiques'}
+                {activeNav === 'profile' && 'Gérez vos informations personnelles'}
+              </p>
             </div>
             <button
-              onClick={() => setShowProfile(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
-              <User size={18} />
-              Profil
+              <LogOut size={18} />
+              Déconnexion
             </button>
           </div>
         </header>
 
         {/* Main Body */}
         <main className="p-8">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {dashboardData?.stats.map((stat, index) => {
-              const percentage = Math.min(95, parseInt(stat.value) * 2 || 75);
-              
-              // Icônes professionnelles selon le type de stat
-              const getIcon = () => {
-                switch(stat.label) {
-                  case "Mes cours":
-                    return <BookOpen className="text-white" size={24} />;
-                  case "Étudiants":
-                    return <Users className="text-white" size={24} />;
-                  case "Évaluations":
-                    return <FileText className="text-white" size={24} />;
-                  case "Réussite":
-                    return <BarChart3 className="text-white" size={24} />;
-                  default:
-                    return <LayoutDashboard className="text-white" size={24} />;
-                }
-              };
-              
-              return (
-                <div
-                  key={index}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all group"
-                >
-                  {/* Header avec icône professionnelle */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getStatColorClasses(stat.color)} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-                      {getIcon()}
+          {activeNav === 'profile' ? (
+            renderProfile()
+          ) : (
+            <>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {dashboardData?.stats.map((stat, index) => {
+                  const percentage = Math.min(95, parseInt(stat.value) * 2 || 75);
+                  
+                  // Icônes professionnelles selon le type de stat
+                  const getIcon = () => {
+                    switch(stat.label) {
+                      case "Mes cours":
+                        return <BookOpen className="text-white" size={24} />;
+                      case "Étudiants":
+                        return <Users className="text-white" size={24} />;
+                      case "Évaluations":
+                        return <FileText className="text-white" size={24} />;
+                      case "Réussite":
+                        return <BarChart3 className="text-white" size={24} />;
+                      default:
+                        return <LayoutDashboard className="text-white" size={24} />;
+                    }
+                  };
+                  
+                  return (
+                    <div
+                      key={index}
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all group"
+                    >
+                      {/* Header avec icône professionnelle */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getStatColorClasses(stat.color)} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+                          {getIcon()}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs font-semibold text-green-600">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          </svg>
+                          +12%
+                        </div>
+                      </div>
+
+                      {/* Valeur principale */}
+                      <div className="mb-4">
+                        <div className="text-sm font-medium text-gray-600 mb-1">{stat.label}</div>
+                        <div className="text-4xl font-bold text-gray-900 mb-1">
+                          {stat.value}
+                        </div>
+                        <div className="text-xs text-gray-500">{stat.description}</div>
+                      </div>
+
+                      {/* Barre de progression */}
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                          <span>Progression</span>
+                          <span className="font-semibold">{percentage}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full bg-gradient-to-r ${getStatColorClasses(stat.color)} transition-all duration-1000 rounded-full`}
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* Mini graphique sparkline */}
+                      <div className="flex items-end justify-between h-8 gap-1">
+                        {[65, 70, 68, 75, 80, 78, 85, 90, 88, percentage].map((height, i) => (
+                          <div 
+                            key={i}
+                            className={`flex-1 bg-gradient-to-t ${getStatColorClasses(stat.color)} rounded-t opacity-30 hover:opacity-60 transition-all`}
+                            style={{ height: `${(height / 100) * 32}px` }}
+                          ></div>
+                        ))}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${getStatColorClasses(stat.color)}`}></div>
+                          Actif
+                        </span>
+                        <span>Mis à jour</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-green-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                      +12%
-                    </div>
-                  </div>
-
-                  {/* Valeur principale */}
-                  <div className="mb-4">
-                    <div className="text-sm font-medium text-gray-600 mb-1">{stat.label}</div>
-                    <div className="text-4xl font-bold text-gray-900 mb-1">
-                      {stat.value}
-                    </div>
-                    <div className="text-xs text-gray-500">{stat.description}</div>
-                  </div>
-
-                  {/* Barre de progression */}
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                      <span>Progression</span>
-                      <span className="font-semibold">{percentage}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full bg-gradient-to-r ${getStatColorClasses(stat.color)} transition-all duration-1000 rounded-full`}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Mini graphique sparkline */}
-                  <div className="flex items-end justify-between h-8 gap-1">
-                    {[65, 70, 68, 75, 80, 78, 85, 90, 88, percentage].map((height, i) => (
-                      <div 
-                        key={i}
-                        className={`flex-1 bg-gradient-to-t ${getStatColorClasses(stat.color)} rounded-t opacity-30 hover:opacity-60 transition-all`}
-                        style={{ height: `${(height / 100) * 32}px` }}
-                      ></div>
-                    ))}
-                  </div>
-
-                  {/* Footer */}
-                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${getStatColorClasses(stat.color)}`}></div>
-                      Actif
-                    </span>
-                    <span>Mis à jour</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-
+                  );
+                })}
+              </div>
+            </>
+          )}
         </main>
       </div>
-
-      {/* Profile Modal */}
-      {showProfile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white relative">
-              <button
-                onClick={() => setShowProfile(false)}
-                className="absolute top-4 right-4 text-white hover:text-gray-200"
-              >
-                <X size={24} />
-              </button>
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold text-2xl">
-                  {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold">{user?.prenom} {user?.nom}</h3>
-                  <p className="text-blue-100">Enseignant</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="p-6">
-              {editingProfile ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleProfileUpdate();
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prénom <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.prenom}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, prenom: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nom <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.nom}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, nom: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={profileData.email}
-                      disabled
-                      title="L'email ne peut pas être modifié"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Téléphone
-                    </label>
-                    <input
-                      type="tel"
-                      value={profileData.telephone}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, telephone: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="submit"
-                      className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                    >
-                      Enregistrer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingProfile(false)}
-                      className="flex-1 px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="border-b border-gray-200 pb-3">
-                    <span className="text-sm text-gray-600">Nom complet</span>
-                    <p className="text-lg font-semibold text-gray-800">{user?.prenom} {user?.nom}</p>
-                  </div>
-
-                  <div className="border-b border-gray-200 pb-3">
-                    <span className="text-sm text-gray-600">Email</span>
-                    <p className="text-lg font-semibold text-gray-800">{user?.email}</p>
-                  </div>
-
-                  <div className="border-b border-gray-200 pb-3">
-                    <span className="text-sm text-gray-600">Rôle</span>
-                    <p className="mt-1">
-                      <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                        Enseignant
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="pb-3">
-                    <span className="text-sm text-gray-600">Département</span>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {user?.departement?.nom || "Non spécifié"}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setEditingProfile(true)}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    <Edit size={18} />
-                    Modifier le profil
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
