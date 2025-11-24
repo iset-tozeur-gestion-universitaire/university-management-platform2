@@ -115,6 +115,7 @@ export class AttendanceService {
         // Envoyer les notifications pour chaque étudiant absent
         for (const absentStudent of absentStudents) {
           try {
+            // Notification d'absence normale
             await axios.post(
               'http://localhost:3002/api/notifications',
               {
@@ -133,6 +134,63 @@ export class AttendanceService {
               }
             );
             console.log('✅ Notification envoyée pour étudiant:', absentStudent.etudiantId);
+
+            // Vérifier le nombre total d'absences dans cette matière
+            const absencesCount = await this.dataSource.query(
+              `SELECT COUNT(*) as total
+               FROM presences p
+               JOIN seances s ON p.seance_id = s.id
+               WHERE p.etudiant_id = $1 
+               AND s.matiere_id = $2 
+               AND p.statut = 'absent'`,
+              [absentStudent.etudiantId, cours.matiere]
+            );
+
+            const totalAbsences = parseInt(absencesCount[0].total);
+            console.log(`📊 Étudiant ${absentStudent.etudiantId} - Total absences en ${matiereNom}: ${totalAbsences}`);
+
+            // Si l'étudiant atteint 4 absences, envoyer une alerte d'élimination
+            if (totalAbsences >= 4) {
+              await axios.post(
+                'http://localhost:3002/api/notifications',
+                {
+                  etudiantId: absentStudent.etudiantId,
+                  type: 'elimination',
+                  titre: '⚠️ ALERTE ÉLIMINATION',
+                  message: `ATTENTION ! Vous avez atteint ${totalAbsences} absences en ${matiereNom}. Vous êtes maintenant ÉLIMINÉ de cette matière. Veuillez contacter l'administration ou votre enseignant.`,
+                  matiereNom: matiereNom,
+                  date: new Date(date).toLocaleDateString('fr-FR'),
+                  enseignantNom: enseignantNom,
+                },
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                  }
+                }
+              );
+              console.log(`🚨 ALERTE ÉLIMINATION envoyée pour étudiant ${absentStudent.etudiantId} - ${totalAbsences} absences en ${matiereNom}`);
+            } else if (totalAbsences === 3) {
+              // Avertissement à 3 absences
+              await axios.post(
+                'http://localhost:3002/api/notifications',
+                {
+                  etudiantId: absentStudent.etudiantId,
+                  type: 'avertissement',
+                  titre: '⚠️ Avertissement - Risque d\'élimination',
+                  message: `ATTENTION ! Vous avez ${totalAbsences} absences en ${matiereNom}. Une absence supplémentaire entraînera votre ÉLIMINATION de cette matière.`,
+                  matiereNom: matiereNom,
+                  date: new Date(date).toLocaleDateString('fr-FR'),
+                  enseignantNom: enseignantNom,
+                },
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                  }
+                }
+              );
+              console.log(`⚠️ Avertissement envoyé pour étudiant ${absentStudent.etudiantId} - ${totalAbsences} absences en ${matiereNom}`);
+            }
+
           } catch (error) {
             console.error('❌ Erreur envoi notification pour étudiant', absentStudent.etudiantId, ':', error.message);
             // Continue même si l'envoi de notification échoue
