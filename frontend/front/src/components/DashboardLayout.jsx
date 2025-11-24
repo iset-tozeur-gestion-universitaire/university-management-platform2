@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext';
+import NotificationPanel from './NotificationPanel';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -118,12 +119,12 @@ const DashboardLayout = () => {
         </nav>
 
         {/* User Profile at Bottom */}
-        <div className="p-4 border-t border-blue-700">
-          <div className="flex items-center gap-3">
+        <div className="p-4 border-t border-blue-700 relative">
+            <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
               {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">
                 {user?.prenom} {user?.nom}
               </p>
@@ -161,6 +162,7 @@ const DashboardLayout = () => {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              <NotificationPanel />
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
