@@ -12,6 +12,7 @@ import { MatiereModule } from './matiere/matiere.module';
 import { MessageModule } from './message/message.module';
 import { DirecteurModule } from './directeur/directeur.module';
 import { EvenementModule } from './evenement/evenement.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { EvenementModule } from './evenement/evenement.module';
     MessageModule,
     DirecteurModule,
     EvenementModule,
+    NotificationModule,
   ],
 })
 export class AppModule {}
