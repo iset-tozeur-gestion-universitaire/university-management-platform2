@@ -187,7 +187,7 @@ function App() {
               <Route
                 path="/my-schedule"
                 element={
-                  <ProtectedRoute allowedRoles={["etudiant"]}>
+                  <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement"]}>
                     <MySchedule />
                   </ProtectedRoute>
                 }
