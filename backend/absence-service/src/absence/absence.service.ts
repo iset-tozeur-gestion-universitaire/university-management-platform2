@@ -18,46 +18,59 @@ export class AbsenceService {
   ) {}
 
   async create(createDto: CreateAbsenceDto): Promise<Absence> {
+    console.log('📝 Creating absence with data:', createDto);
+    
     const absence: any = this.absenceRepo.create(createDto as any);
     // ensure defaults: if sujet is 'enseignant' and enseignantId present, mark as EN_ATTENTE (request to director)
     if ((absence as any).sujet === 'enseignant') {
       absence.statut = StatutAbsence.EN_ATTENTE;
       absence.rattrapage = false;
     }
+    
+    console.log('💾 Saving absence to database...');
     try {
       const savedAbsence = await this.absenceRepo.save(absence);
+      console.log('✅ Absence saved successfully:', savedAbsence.id);
 
       // Send notification if it's a teacher absence
       if ((savedAbsence as any).sujet === 'enseignant') {
+        console.log('📧 Sending notification for teacher absence...');
         try {
           await this.sendAbsenceNotification(savedAbsence);
+          console.log('✅ Notification sent successfully');
         } catch (notifError) {
-          console.error('Erreur lors de l\'envoi de la notification d\'absence:', notifError);
+          console.error('⚠️ Erreur lors de l\'envoi de la notification d\'absence:', notifError);
           // Don't fail the absence creation if notification fails
         }
       }
 
       return savedAbsence;
     } catch (err) {
-      console.error('AbsenceService.create error:', err);
-      throw new InternalServerErrorException('Erreur lors de la création de l\'absence');
+      console.error('❌ AbsenceService.create error:', err);
+      console.error('Error details:', err.message, err.stack);
+      throw new InternalServerErrorException('Erreur lors de la création de l\'absence: ' + err.message);
     }
   }
 
   private async sendAbsenceNotification(absence: any): Promise<void> {
     try {
+      console.log('🔍 Getting teacher info for ID:', absence.enseignantId);
       // Get teacher info from admin-service
       const enseignantResponse = await firstValueFrom(
         this.httpService.get(`http://localhost:3002/enseignant/${absence.enseignantId}`)
       );
       const enseignant = enseignantResponse.data;
+      console.log('✅ Teacher info:', enseignant.nom, enseignant.prenom);
 
+      console.log('🔍 Getting matiere info for ID:', absence.matiereId);
       // Get matiere info
       const matiereResponse = await firstValueFrom(
         this.httpService.get(`http://localhost:3002/matiere/${absence.matiereId}`)
       );
       const matiere = matiereResponse.data;
+      console.log('✅ Matiere info:', matiere.nom);
 
+      console.log('🔍 Getting directors for department:', enseignant.departement?.id);
       // Get director for the department
       const directeursResponse = await firstValueFrom(
         this.httpService.get('http://localhost:3002/enseignant')
@@ -65,6 +78,7 @@ export class AbsenceService {
       const directeurs = directeursResponse.data.filter(
         (e: any) => e.departement?.id === enseignant.departement?.id && e.role === 'directeur_departement'
       );
+      console.log('✅ Found directors:', directeurs.length);
 
       if (directeurs.length === 0) {
         console.warn('Aucun directeur trouvé pour le département:', enseignant.departement?.id);

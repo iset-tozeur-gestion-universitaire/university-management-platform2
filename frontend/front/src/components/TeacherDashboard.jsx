@@ -391,7 +391,9 @@ const TeacherDashboard = () => {
         body: JSON.stringify({
           matiereId: selectedMatiere.id,
           dateAbsence: absenceData.date,
-          motif: absenceData.motif
+          motifJustification: absenceData.motif,
+          commentaire: absenceData.motif,
+          sujet: 'enseignant'
         }),
       });
 
