@@ -67,6 +67,10 @@ const ScheduleBuilder = () => {
         adminService.getSalles()
       ]);
 
+      // Stocker toutes les données avant filtrage (pour les cours existants)
+      const allTeachers = teachersData;
+      const allSubjects = subjectsData;
+      
       // Filtrer par département si l'utilisateur est directeur de département
       const userDepartementId = user?.departement?.id || user?.departementId;
       
@@ -90,8 +94,8 @@ const ScheduleBuilder = () => {
         );
         
         setClasses(filteredClasses);
-        setTeachers(filteredTeachers);
-        setSubjects(filteredSubjects);
+        setTeachers(allTeachers); // Garder tous pour pouvoir afficher les cours existants
+        setSubjects(allSubjects); // Garder tous pour pouvoir afficher les cours existants
       } else {
         setClasses(classesData);
         setTeachers(teachersData);
@@ -125,15 +129,25 @@ const ScheduleBuilder = () => {
     
     // Make sure we have the required data loaded
     if (teachers.length === 0 || subjects.length === 0 || rooms.length === 0) {
-      console.log('Waiting for data to load...');
+      console.log('⏳ Waiting for data to load...', { 
+        teachers: teachers.length, 
+        subjects: subjects.length, 
+        rooms: rooms.length 
+      });
       return;
     }
     
     try {
       setLoading(true);
+      console.log('📅 Loading schedule for class:', selectedClass, 'semestre:', semestre);
       const data = await scheduleService.getScheduleByClass(parseInt(selectedClass), semestre);
       
-      console.log('Loaded schedule data:', data);
+      console.log('📦 Loaded schedule data:', data);
+      console.log('📊 Available resources:', { 
+        teachers: teachers.length, 
+        subjects: subjects.length, 
+        rooms: rooms.length 
+      });
       
       const newSchedule = {};
       weekDays.forEach(day => {
@@ -144,10 +158,31 @@ const ScheduleBuilder = () => {
       });
       
       if (data && Object.keys(data).length > 0) {
+        console.log('✅ Schedule has data, processing...');
         Object.entries(data).forEach(([jour, courses]) => {
+          console.log(`📅 Processing ${jour}:`, courses);
           courses.forEach(course => {
             const timeSlot = `${course.heureDebut}-${course.heureFin}`;
-            if (newSchedule[jour] && timeSlots.includes(timeSlot)) {
+            
+            // Chercher le créneau correspondant (exact ou le plus proche)
+            let matchingSlot = timeSlots.find(slot => slot === timeSlot);
+            
+            // Si pas de correspondance exacte, chercher un créneau qui contient ces heures
+            if (!matchingSlot) {
+              console.warn(`Time slot ${timeSlot} not found in standard slots, searching for best match...`);
+              matchingSlot = timeSlots.find(slot => {
+                const [slotStart, slotEnd] = slot.split('-');
+                return slotStart === course.heureDebut || slotEnd === course.heureFin;
+              });
+            }
+            
+            // Si toujours pas de correspondance, utiliser le premier créneau disponible et logger un warning
+            if (!matchingSlot) {
+              console.warn(`No matching slot found for ${timeSlot}, course will not be displayed`);
+              return;
+            }
+            
+            if (newSchedule[jour]) {
               // Gérer les données qui peuvent être des objets ou des strings
               const matiereName = typeof course.matiere === 'object' ? course.matiere.nom : course.matiere;
               const enseignantData = typeof course.enseignant === 'object' ? course.enseignant : null;
@@ -176,30 +211,54 @@ const ScheduleBuilder = () => {
               
               const room = rooms.find(r => r.nom === salleName || r.id === course.salleId);
               
-              console.log(`Matching for ${jour} ${timeSlot}:`, { subject, teacher, room, course });
+              console.log(`🔍 Matching for ${jour} ${matchingSlot}:`, { 
+                subject: subject?.nom, 
+                teacher: teacher ? `${teacher.prenom} ${teacher.nom}` : null, 
+                room: room?.nom,
+                courseData: course 
+              });
               
-              if (subject && teacher && room) {
-                newSchedule[jour][timeSlot] = {
-                  id: course.id,
-                  subject,
-                  teacher,
-                  room,
-                  day: jour,
-                  timeSlot,
-                  class: selectedClass,
-                  isNew: false // Marquer comme existant
-                };
+              // Afficher le cours même s'il est incomplet ou si la matière n'est pas trouvée
+              // Si la matière n'est pas trouvée, utiliser les données du cours directement
+              const courseSubject = subject || {
+                id: course.matiereId,
+                nom: matiereName || 'Matière inconnue',
+                couleur: '#999999'
+              };
+              
+              newSchedule[jour][matchingSlot] = {
+                id: course.id,
+                subject: courseSubject,
+                teacher: teacher || null,
+                room: room || null,
+                day: jour,
+                timeSlot: matchingSlot,
+                class: selectedClass,
+                isNew: false // Marquer comme existant
+              };
+              console.log(`✅ Course added to schedule at ${jour} ${matchingSlot}`);
+              
+              if (!subject) {
+                console.warn(`⚠️ Subject not found in filtered list, using course data:`, course);
               }
             }
           });
         });
+      } else {
+        console.log('⚠️ No schedule data found for this class');
       }
       
-      console.log('Final schedule:', newSchedule);
+      console.log('📋 Final schedule:', newSchedule);
+      console.log('📊 Schedule summary:', {
+        totalDays: Object.keys(newSchedule).length,
+        coursesCount: Object.values(newSchedule).reduce((acc, day) => 
+          acc + Object.values(day).filter(c => c !== null).length, 0
+        )
+      });
       setSchedule(newSchedule);
       setLoading(false);
     } catch (err) {
-      console.error('Erreur chargement emploi existant:', err);
+      console.error('❌ Erreur chargement emploi existant:', err);
       initializeSchedule();
       setLoading(false);
     }
