@@ -59,15 +59,27 @@ const ScheduleViewer = () => {
       setLoading(true);
       const classesData = await scheduleService.getClasses();
       
-      setClasses(classesData);
+      // Filtrer par département si l'utilisateur est directeur de département
+      const userDepartementId = user?.departement?.id || user?.departementId;
+      
+      let filteredClasses = classesData;
+      if (userDepartementId && user?.role === 'directeur_departement') {
+        // Filtrer les classes dont la spécialité appartient au département
+        filteredClasses = classesData.filter(classe => 
+          classe.specialite?.departement?.id === userDepartementId ||
+          classe.specialite?.departementId === userDepartementId
+        );
+      }
+      
+      setClasses(filteredClasses);
       
       const classIdParam = searchParams.get('classId');
       const semestreParam = searchParams.get('semestre');
       
       if (classIdParam) {
         setSelectedClass(classIdParam);
-      } else if (classesData.length > 0) {
-        setSelectedClass(classesData[0].id.toString());
+      } else if (filteredClasses.length > 0) {
+        setSelectedClass(filteredClasses[0].id.toString());
       }
       
       if (semestreParam) {
@@ -89,9 +101,30 @@ const ScheduleViewer = () => {
         scheduleService.getRooms(),
         scheduleService.getSubjects()
       ]);
-      setTeachers(teachersData);
+      
+      // Filtrer par département si l'utilisateur est directeur de département
+      const userDepartementId = user?.departement?.id || user?.departementId;
+      
+      if (userDepartementId && user?.role === 'directeur_departement') {
+        // Filtrer les enseignants et matières du département
+        const filteredTeachers = teachersData.filter(teacher => 
+          teacher.departement?.id === userDepartementId ||
+          teacher.departementId === userDepartementId
+        );
+        
+        const filteredSubjects = subjectsData.filter(matiere => 
+          matiere.departement?.id === userDepartementId ||
+          matiere.departementId === userDepartementId
+        );
+        
+        setTeachers(filteredTeachers);
+        setSubjects(filteredSubjects);
+      } else {
+        setTeachers(teachersData);
+        setSubjects(subjectsData);
+      }
+      
       setRooms(roomsData);
-      setSubjects(subjectsData);
     } catch (err) {
       console.error('Erreur lors du chargement des ressources:', err);
     }

@@ -20,6 +20,7 @@ const ScheduleBuilder = () => {
   const [draggedItem, setDraggedItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deletedCourseIds, setDeletedCourseIds] = useState([]);
 
   // Créneaux horaires standards
   const timeSlots = [
@@ -66,9 +67,37 @@ const ScheduleBuilder = () => {
         adminService.getSalles()
       ]);
 
-      setClasses(classesData);
-      setTeachers(teachersData);
-      setSubjects(subjectsData);
+      // Filtrer par département si l'utilisateur est directeur de département
+      const userDepartementId = user?.departement?.id || user?.departementId;
+      
+      if (userDepartementId && user?.role === 'directeur_departement') {
+        // Filtrer les classes dont la spécialité appartient au département
+        const filteredClasses = classesData.filter(classe => 
+          classe.specialite?.departement?.id === userDepartementId ||
+          classe.specialite?.departementId === userDepartementId
+        );
+        
+        // Filtrer les matières du département
+        const filteredSubjects = subjectsData.filter(matiere => 
+          matiere.departement?.id === userDepartementId ||
+          matiere.departementId === userDepartementId
+        );
+        
+        // Filtrer les enseignants du département
+        const filteredTeachers = teachersData.filter(teacher => 
+          teacher.departement?.id === userDepartementId ||
+          teacher.departementId === userDepartementId
+        );
+        
+        setClasses(filteredClasses);
+        setTeachers(filteredTeachers);
+        setSubjects(filteredSubjects);
+      } else {
+        setClasses(classesData);
+        setTeachers(teachersData);
+        setSubjects(subjectsData);
+      }
+      
       setRooms(roomsData);
       
       setLoading(false);
@@ -82,8 +111,11 @@ const ScheduleBuilder = () => {
   useEffect(() => {
     if (selectedClass && teachers.length > 0 && subjects.length > 0 && rooms.length > 0) {
       loadExistingSchedule();
+      // Réinitialiser les cours supprimés quand on change de classe
+      setDeletedCourseIds([]);
     } else if (!selectedClass) {
       initializeSchedule();
+      setDeletedCourseIds([]);
     }
     // If selectedClass is set but data not loaded, wait for data to load
   }, [selectedClass, semestre, teachers, subjects, rooms]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -239,7 +271,8 @@ const ScheduleBuilder = () => {
         ...prev[day],
         [timeSlot]: {
           ...prev[day][timeSlot],
-          teacher
+          teacher,
+          isModified: true // Marquer comme modifié
         }
       }
     }));
@@ -255,13 +288,21 @@ const ScheduleBuilder = () => {
         ...prev[day],
         [timeSlot]: {
           ...prev[day][timeSlot],
-          room
+          room,
+          isModified: true // Marquer comme modifié
         }
       }
     }));
   };
 
   const removeCourse = (day, timeSlot) => {
+    const course = schedule[day]?.[timeSlot];
+    
+    // Si le cours a un ID (cours existant en BD), l'ajouter à la liste des suppressions
+    if (course?.id) {
+      setDeletedCourseIds(prev => [...prev, course.id]);
+    }
+    
     setSchedule(prev => ({
       ...prev,
       [day]: {
@@ -291,7 +332,7 @@ const ScheduleBuilder = () => {
 
       Object.entries(schedule).forEach(([day, slots]) => {
         Object.entries(slots).forEach(([timeSlot, course]) => {
-          if (course && course.teacher && course.room && course.isNew) {
+          if (course && course.teacher && course.room) {
             const [heureDebut, heureFin] = timeSlot.split('-');
             
             // Créer une date pour le jour de la semaine
@@ -312,22 +353,33 @@ const ScheduleBuilder = () => {
               heureFin: heureFin.trim()
             };
             
-            // Check if this is an existing course (has id and not marked as new) or a new one
-            if (course.id && !course.isNew) {
+            // Si le cours a un ID et est modifié, ou s'il n'a pas de flag isNew (cours existant)
+            if (course.id && (course.isModified || !course.isNew)) {
               coursesToUpdate.push({
                 id: course.id,
                 ...courseData
               });
-            } else {
+            } else if (course.isNew) {
+              // Nouveau cours
               coursesToCreate.push(courseData);
             }
           }
         });
       });
 
-      if (coursesToCreate.length === 0 && coursesToUpdate.length === 0) {
+      if (coursesToCreate.length === 0 && coursesToUpdate.length === 0 && deletedCourseIds.length === 0) {
         alert('Aucun cours complet défini dans l\'emploi du temps.\nAssurez-vous d\'assigner un enseignant ET une salle à chaque cours.');
         return;
+      }
+
+      // Delete removed courses first
+      for (const courseId of deletedCourseIds) {
+        try {
+          await scheduleService.deleteEmploi(courseId);
+        } catch (err) {
+          console.error('Erreur lors de la suppression du cours:', err);
+          throw err;
+        }
       }
 
       // Update existing courses
@@ -359,7 +411,10 @@ const ScheduleBuilder = () => {
         await scheduleService.saveSchedule(scheduleData);
       }
       
-      alert(`Emploi du temps sauvegardé avec succès !\n${coursesToUpdate.length} cours mis à jour, ${coursesToCreate.length} cours créés.`);
+      alert(`Emploi du temps sauvegardé avec succès !\n${deletedCourseIds.length} cours supprimés, ${coursesToUpdate.length} cours mis à jour, ${coursesToCreate.length} cours créés.`);
+      
+      // Réinitialiser la liste des cours supprimés
+      setDeletedCourseIds([]);
       
       // Rediriger vers le visualiseur d'emploi du temps pour la classe créée
       navigate(`/schedule-viewer?classId=${selectedClass}&semestre=${semestre}`);

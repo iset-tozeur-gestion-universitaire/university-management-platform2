@@ -6,8 +6,8 @@ async function checkAllTables() {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     user: process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || '1234',
-    database: process.env.DB_NAME || 'university_db',
+    password: process.env.DB_PASSWORD || '0000',
+    database: process.env.DB_NAME || 'university_db_zei',
   });
 
   try {

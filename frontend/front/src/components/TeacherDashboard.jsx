@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import MySchedule from './MySchedule';
+import MessagingPage from './MessagingPage';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -21,6 +23,7 @@ import {
 const TeacherDashboard = () => {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -51,7 +54,16 @@ const TeacherDashboard = () => {
     loadAbsencesData();
     loadJustificationRequests();
     loadMatieres();
-  }, []);
+    
+    // Mettre à jour activeNav en fonction de l'URL
+    if (location.pathname === '/teacher-schedule') {
+      setActiveNav('viewSchedule');
+    } else if (location.pathname === '/teacher-messaging') {
+      setActiveNav('messaging');
+    } else {
+      setActiveNav('dashboard');
+    }
+  }, [location.pathname]);
 
   const loadDashboardData = async () => {
     setTimeout(() => {
@@ -252,6 +264,7 @@ const TeacherDashboard = () => {
     setActiveNav(action);
     switch (action) {
       case "dashboard":
+        navigate("/teacher-dashboard");
         break;
       case "manageCourses":
         alert("Ouverture de la gestion des cours...");
@@ -260,13 +273,13 @@ const TeacherDashboard = () => {
         alert("Ouverture des évaluations...");
         break;
       case "viewSchedule":
-        navigate("/my-schedule");
+        navigate("/teacher-schedule");
         break;
       case "statistics":
         alert("Ouverture des statistiques...");
         break;
       case "messaging":
-        navigate('/messagerie');
+        navigate('/teacher-messaging');
         break;
       case "absences":
         loadAbsencesData();
@@ -916,7 +929,11 @@ const TeacherDashboard = () => {
 
         {/* Main Body */}
         <main className="p-8">
-          {activeNav === 'absences' ? (
+          {activeNav === 'viewSchedule' ? (
+            <MySchedule />
+          ) : activeNav === 'messaging' ? (
+            <MessagingPage />
+          ) : activeNav === 'absences' ? (
             renderAbsences()
           ) : activeNav === 'profile' ? (
             renderProfile()

@@ -27,9 +27,13 @@ const TeacherScheduleViewer = () => {
       setLoading(true);
       const data = await adminService.getEnseignants();
       
-      // Filter by department if user is director
-      const filteredTeachers = user?.role === 'directeur_departement' && user?.departement_id
-        ? data.filter(t => t.departement?.id === user.departement_id)
+      // Filtrer par département si l'utilisateur est directeur de département
+      const userDepartementId = user?.departement?.id || user?.departementId;
+      const filteredTeachers = user?.role === 'directeur_departement' && userDepartementId
+        ? data.filter(t => 
+            t.departement?.id === userDepartementId || 
+            t.departementId === userDepartementId
+          )
         : data;
       
       setTeachers(filteredTeachers);
